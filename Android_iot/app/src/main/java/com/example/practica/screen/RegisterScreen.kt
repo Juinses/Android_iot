@@ -30,14 +30,11 @@ fun RegisterScreen(nav: NavController) {
         Modifier.fillMaxSize().padding(20.dp), verticalArrangement =
         Arrangement.Center) {
         Text("Crear cuenta", fontSize = 22.sp)
-        OutlinedTextField(name, {
-        }, label = { Text("Nombre") })
+        OutlinedTextField(name, { name = it }, label = { Text("Nombre") })
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(email, {
-        }, label = { Text("Correo") })
+        OutlinedTextField(email, { email = it }, label = { Text("Correo") })
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(pwd, {
-        }, label = { Text("Contraseña") })
+        OutlinedTextField(pwd, { pwd = it }, label = { Text("Contraseña") })
         Spacer(Modifier.height(16.dp))
         Button(onClick = { nav.navigate(Route.Login.path) }, modifier =
             Modifier.fillMaxWidth()) {
