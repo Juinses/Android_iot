@@ -42,7 +42,7 @@ fun LoginContent(
     ) {
         Text("Bienvenido", fontSize = 23.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(12.dp))
-        OutlinedTextField(user, onUserChange, label = { Text("Usuario") }, modifier = Modifier.fillMaxWidth(),)
+        OutlinedTextField(user, onUserChange, label = { Text("Usuario") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(pass, onPassChange, label = { Text("Contraseña") } )
         Spacer(Modifier.height(16.dp))
@@ -79,4 +79,4 @@ fun LoginContentPreview() {
             onRegisterClick = {}
         )
     }
-    }
+}
