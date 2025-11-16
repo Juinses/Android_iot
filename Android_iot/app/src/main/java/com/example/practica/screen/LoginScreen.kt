@@ -1,5 +1,6 @@
 package com.example.practica.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -18,10 +20,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.practica.R
 import com.example.practica.nav.Route
 import com.example.practica.ui.theme.PracticaTheme
 
@@ -38,13 +42,20 @@ fun LoginContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(20.dp),
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Bienvenido", fontSize = 23.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = "Logo",
+            modifier = Modifier.size(120.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text("Bienvenido", fontSize = 23.sp)
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(user, onUserChange, label = { Text("Usuario") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(pass, onPassChange, label = { Text("Contraseña") } )
+        OutlinedTextField(pass, onPassChange, label = { Text("Contraseña") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(16.dp))
         Button(onClick = onLoginClick, modifier = Modifier.fillMaxWidth()) {
             Text("Ingresar")
