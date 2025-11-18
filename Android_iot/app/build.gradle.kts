@@ -54,6 +54,13 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.0")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation(libs.androidx.navigation.runtime.ktx)
+    // SplashScreen API (compatibilidad hacia atrás)
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    // Para manejar delay/cargas en Activity
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
+    // (Opcional) Lottie para Compose
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
+    implementation(libs.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

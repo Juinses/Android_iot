@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.Practica" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.App.Splash" parent="Theme.SplashScreen">
+        <!-- Ícono grande del splash -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo</item>
+        <!-- Color de fondo del splash -->
+        <item name="windowSplashScreenBackground">@android:color/black</item>
+        <!-- (Opcional) Duración si agregas icono animado de compat -->
+        <item name="postSplashScreenTheme">@style/PracticaTheme.App</item>
+    </style>
+    <style name="PracticaTheme.App" parent="Theme.AppCompat.Light.NoActionBar" />
 </resources>
