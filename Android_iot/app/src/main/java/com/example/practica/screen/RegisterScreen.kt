@@ -1,5 +1,6 @@
 package com.example.practica.screen
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,21 +17,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.practica.nav.Route
+import com.example.practica.screen.login.AuthViewModel
 import com.example.practica.ui.theme.PracticaTheme
 
 @Composable
-fun RegisterScreen(nav: NavController) {
+fun RegisterScreen(nav: NavController, vm: AuthViewModel = viewModel()) {
     var name by remember { mutableStateOf("") }
-    var apellido by remember { mutableStateOf("") }
-    var telefono by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var pwd by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+
     Column(
         Modifier.fillMaxSize().padding(20.dp),
         verticalArrangement = Arrangement.Center
@@ -41,20 +46,6 @@ fun RegisterScreen(nav: NavController) {
             value = name,
             onValueChange = { name = it },
             label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = apellido,
-            onValueChange = { apellido = it },
-            label = { Text("Apellido") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = telefono,
-            onValueChange = { telefono = it },
-            label = { Text("Teléfono") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
@@ -73,10 +64,25 @@ fun RegisterScreen(nav: NavController) {
         )
         Spacer(Modifier.height(16.dp))
         Button(
-            onClick = { nav.navigate(Route.Login.path) },
+            onClick = {
+                vm.register(
+                    name = name,
+                    email = email,
+                    pass = pwd,
+                    onSuccess = {
+                        Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
+                        nav.navigate(Route.Login.path) {
+                            popUpTo(Route.Register.path) { inclusive = true }
+                        }
+                    },
+                    onFail = { errorMsg ->
+                        Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                    }
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Crear cuenta")
+            Text("Registrarse")
         }
     }
 }

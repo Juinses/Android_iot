@@ -77,7 +77,7 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
             )
         }
         composable(Route.Register.path) {
-            RegisterScreen(nav)
+            RegisterScreen(nav, vm)
         }
     }
 }

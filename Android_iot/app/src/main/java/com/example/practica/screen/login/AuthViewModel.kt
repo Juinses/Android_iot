@@ -61,4 +61,17 @@ class AuthViewModel(
             _authState.value = AuthState.Unauthenticated
         }
     }
+
+    fun register(name: String, email: String, pass: String, onSuccess: () -> Unit, onFail:
+        (String) -> Unit) {
+        viewModelScope.launch {
+            val res = repo.register(name, email, pass)
+            res.fold(
+                onSuccess = { onSuccess() },
+                onFailure = { onFail(it.message ?: "Error al registrar") }
+            )
+        }
+    }
+
 }
+

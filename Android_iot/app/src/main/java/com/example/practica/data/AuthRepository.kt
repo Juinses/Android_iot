@@ -6,6 +6,7 @@ import com.example.practica.data.remote.AuthApi
 import com.example.practica.data.remote.HttpClient
 import com.example.practica.data.remote.dto.LoginRequest
 import com.example.practica.data.remote.dto.LoginResponse
+import com.example.practica.data.remote.dto.RegisterRequest
 import com.example.practica.data.remote.dto.UserDto
 
 class AuthRepository(
@@ -45,6 +46,22 @@ class AuthRepository(
             val user = api.profile("Bearer $token")
             // Aquí valida contra backend
             Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // ---------- REGISTER ----------
+    suspend fun register(name: String, email: String, password: String): Result<String> {
+        return try {
+            val body = RegisterRequest(name, email, password)
+            val response = api.register(body)
+
+            if (!response.success) {
+                return Result.failure(Exception(response.message))
+            }
+
+            Result.success(response.message)
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -2,6 +2,8 @@ package com.example.practica.data.remote
 
 import com.example.practica.data.remote.dto.LoginRequest
 import com.example.practica.data.remote.dto.LoginResponse
+import com.example.practica.data.remote.dto.RegisterRequest
+import com.example.practica.data.remote.dto.RegisterResponse
 import com.example.practica.data.remote.dto.UserDto
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -15,4 +17,7 @@ interface AuthApi {
     suspend fun profile(
         @Header("Authorization") auth: String
     ): UserDto
+
+    @POST("auth/register")
+    suspend fun register(@Body body: RegisterRequest): RegisterResponse
 }
