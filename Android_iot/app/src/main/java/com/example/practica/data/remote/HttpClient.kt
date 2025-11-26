@@ -9,7 +9,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 
 object HttpClient {
     // OJO: si tu backend escucha en un puerto, agrégalo (ej: :3000)
-    private const val BASE_URL = "http://10.0.2.2:3000/"
+    private const val BASE_URL = "http://ec2-52-71-213-89.compute-1.amazonaws.com/"
     // Moshi con soporte para data classes de Kotlin
     private val moshi: Moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
