@@ -4,27 +4,31 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.practica.data.AuthRepository
-import com.example.practica.data.local.TokenStorage
 import com.example.practica.data.remote.dto.UserDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-sealed class AuthState { data object Checking : AuthState() // Splash chequeando
+sealed class AuthState {
+    data object Checking : AuthState() // Splash chequeando
     data object Unauthenticated : AuthState() // Ir a Login
     data class Authenticated(val user: UserDto) : AuthState() // Ir a Home
     data class Error(val message: String) : AuthState()
 }
+
 class AuthViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val repo = AuthRepository()
     private val _authState = MutableStateFlow<AuthState>(AuthState.Checking)
     val authState: StateFlow<AuthState> = _authState
+
     init {
         checkSession()
     }
+
     private fun appContext() = getApplication<Application>().applicationContext
+
     fun checkSession() {
         viewModelScope.launch {
             val ctx = appContext()
@@ -42,6 +46,7 @@ class AuthViewModel(
             )
         }
     }
+
     fun login(email: String, pass: String) {
         _authState.value = AuthState.Checking
         viewModelScope.launch {
@@ -55,17 +60,18 @@ class AuthViewModel(
             )
         }
     }
+
     fun logout() {
         viewModelScope.launch {
-            TokenStorage.clearToken(appContext())
+            // Usamos el repo en lugar de TokenStorage directo para limpiar advertencia
+            repo.clearToken(appContext())
             _authState.value = AuthState.Unauthenticated
         }
     }
 
-    fun register(name: String, email: String, pass: String, onSuccess: () -> Unit, onFail:
-        (String) -> Unit) {
+    fun register(name: String, lastName: String, email: String, pass: String, onSuccess: () -> Unit, onFail: (String) -> Unit) {
         viewModelScope.launch {
-            val res = repo.register(name, email, pass)
+            val res = repo.register(name, lastName, email, pass)
             res.fold(
                 onSuccess = { onSuccess() },
                 onFailure = { onFail(it.message ?: "Error al registrar") }
@@ -73,5 +79,23 @@ class AuthViewModel(
         }
     }
 
-}
+    fun forgotPassword(email: String, onSuccess: (String) -> Unit, onFail: (String) -> Unit) {
+        viewModelScope.launch {
+            val res = repo.forgotPassword(email)
+            res.fold(
+                onSuccess = { msg -> onSuccess(msg) },
+                onFailure = { err -> onFail(err.message ?: "Error desconocido") }
+            )
+        }
+    }
 
+    fun resetPassword(email: String, code: String, newPass: String, onSuccess: (String) -> Unit, onFail: (String) -> Unit) {
+        viewModelScope.launch {
+            val res = repo.resetPassword(email, code, newPass)
+            res.fold(
+                onSuccess = { msg -> onSuccess(msg) },
+                onFailure = { err -> onFail(err.message ?: "Error desconocido") }
+            )
+        }
+    }
+}

@@ -4,11 +4,9 @@ data class LoginRequest(
     val email: String,
     val password: String
 )
-data class UserDto(
-    val id: Int,
-    val name: String,
-    val email: String
-)
+
+// UserDto eliminado de aquí porque ya existe en UserDto.kt
+
 data class LoginResponse(
     val success: Boolean,
     val token: String,

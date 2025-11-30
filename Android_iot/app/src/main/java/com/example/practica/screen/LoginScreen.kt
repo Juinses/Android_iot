@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.practica.R
 import com.example.practica.nav.Route
 import com.example.practica.screen.login.AuthState
@@ -41,10 +43,14 @@ fun LoginContent(email: String, pass: String, authState: AuthState, onEmailChang
 Unit,
                  onPassChange: (String) -> Unit,
                  onLoginClick: () -> Unit,
-                 onRegisterClick: () -> Unit
+                 onRegisterClick: () -> Unit,
+                 onForgotClick: () -> Unit
 ) {
     val isLoading = authState is AuthState.Checking
     val errorMessage = (authState as? AuthState.Error)?.message
+    // Variable para controlar si hay un error local (campos vacíos, email inválido)
+    var localError by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -69,29 +75,54 @@ Unit,
             onEmailChange,
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            isError = localError != null || errorMessage != null
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(pass,
             onPassChange,
             label = { Text("Contraseña") }, singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = PasswordVisualTransformation(),
+            isError = localError != null || errorMessage != null
         )
         Spacer(Modifier.height(16.dp))
         Button(
-            onClick = onLoginClick,
+            onClick = {
+                localError = null // Limpiar errores previos
+                if (email.isBlank() || pass.isBlank()) {
+                    localError = "Campos obligatorios vacíos"
+                } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    localError = "Formato de email inválido"
+                } else {
+                    onLoginClick()
+                }
+            },
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (isLoading) "Ingresando..." else "Ingresar")
         }
+        
+        // Mostrar errores (Locales o del ViewModel)
+        if (localError != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(localError!!, color = Color.Red)
+        }
         if (errorMessage != null) {
             Spacer(Modifier.height(8.dp))
-            Text(errorMessage, color = MaterialTheme.colorScheme.error)
+            Text(errorMessage, color = Color.Red)
         }
-        TextButton(onClick = onRegisterClick, modifier = Modifier.align(Alignment.End)) {
-            Text("¿No tienes cuenta? Regístrate")
+        
+        // Sección de enlaces (Registro y Recuperar)
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+            TextButton(onClick = onRegisterClick) {
+                Text("¿No tienes cuenta? Regístrate")
+            }
+            // "Recuperar Contraseña" (Punto 2 de la guía)
+            TextButton(onClick = onForgotClick) {
+                Text("¿Olvidaste tu contraseña?", color = Color.Gray)
+            }
         }
     }
 }
@@ -100,6 +131,7 @@ fun LoginScreen(nav: NavController, vm: AuthViewModel = viewModel()) {
     var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
     val authState by vm.authState.collectAsState()
+    
     // Si AuthState cambió a Authenticated → navega
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
@@ -114,13 +146,15 @@ fun LoginScreen(nav: NavController, vm: AuthViewModel = viewModel()) {
         onEmailChange = { email = it },
         onPassChange = { pass = it },
         onLoginClick = { vm.login(email.trim(), pass) },
-        onRegisterClick = { nav.navigate(Route.Register.path) }
+        onRegisterClick = { nav.navigate(Route.Register.path) },
+        onForgotClick = { nav.navigate(Route.ForgotPassword.path) }
     )
 }
+
 @Preview(showBackground = true)
 @Composable
 fun LoginContentPreview() {
-    AppIotComposeTheme {
+    PracticaTheme {
         LoginContent(
             email = "javier@demo.cl",
             pass = "123456",
@@ -128,12 +162,8 @@ fun LoginContentPreview() {
             onEmailChange = {},
             onPassChange = {},
             onLoginClick = {},
-            onRegisterClick = {}
+            onRegisterClick = {},
+            onForgotClick = {}
         )
     }
-}
-
-@Composable
-fun AppIotComposeTheme(content: @Composable () -> Unit) {
-    TODO("Not yet implemented")
 }
