@@ -99,11 +99,15 @@ class AuthRepository(
         }
     }
 
-    // ---------- CRUD USUARIOS ----------
+    // ---------- CRUD USUARIOS (ADAPTADO A NUEVO FORMATO) ----------
     suspend fun getUsers(): Result<List<UserDto>> {
         return try {
-            val users = api.getUsers()
-            Result.success(users)
+            val response = api.getUsers()
+            if (response.success) {
+                Result.success(response.users)
+            } else {
+                Result.failure(Exception("Error al obtener usuarios: success=false"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -113,7 +117,11 @@ class AuthRepository(
         return try {
             val body = RegisterRequest(name, lastName, email, password)
             val response = api.createUser(body)
-            Result.success(response.message)
+            if (response.success) {
+                 Result.success("Usuario creado correctamente")
+            } else {
+                 Result.failure(Exception(response.message ?: "Error desconocido"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -122,7 +130,14 @@ class AuthRepository(
     suspend fun updateUser(user: UserDto): Result<UserDto> {
         return try {
             val response = api.updateUser(user.id, user)
-            Result.success(response)
+            if (response.success) {
+                // Si el backend no devuelve el user actualizado, usamos el que enviamos o null
+                // Tu código de backend devuelve { success: true, message: "User updated" }
+                // Así que retornamos el mismo 'user' que mandamos para actualizar la UI localmente
+                Result.success(user)
+            } else {
+                Result.failure(Exception(response.message ?: "Error desconocido"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -131,10 +146,10 @@ class AuthRepository(
     suspend fun deleteUser(id: Int): Result<Unit> {
         return try {
             val response = api.deleteUser(id)
-            if (response.isSuccessful) {
+            if (response.success) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Error al eliminar: ${response.code()}"))
+                Result.failure(Exception(response.message ?: "Error al eliminar"))
             }
         } catch (e: Exception) {
             Result.failure(e)

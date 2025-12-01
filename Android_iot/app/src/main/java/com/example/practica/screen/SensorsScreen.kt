@@ -119,6 +119,19 @@ fun SensorsScreen(nav: NavController, vm: SensorViewModel = viewModel()) {
             )
         }
         
+        // MENSAJES DE ESTADO (Requisito Punto 11)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = if (isBulbOn) "Ampolleta encendida" else "Ampolleta apagada",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isBulbOn) MaterialTheme.colorScheme.primary else Color.Gray
+        )
+        Text(
+            text = if (isFlashlightOn) "Linterna activada" else "Linterna desactivada",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isFlashlightOn) MaterialTheme.colorScheme.primary else Color.Gray
+        )
+        
         Spacer(modifier = Modifier.weight(1f))
         
         Button(
@@ -139,8 +152,8 @@ fun SensorDataCard(temperature: Float?, humidity: Float?, lastUpdate: String?) {
         Column(modifier = Modifier.padding(16.dp)) {
             // TEMPERATURA
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Lógica de color: Azul si < 20, Rojo si >= 20
-                val tempColor = if ((temperature ?: 0f) < 20f) Color.Blue else Color.Red
+                // Lógica de color: Azul si <= 20, Rojo si > 20
+                val tempColor = if ((temperature ?: 0f) <= 20f) Color.Blue else Color.Red
                 Icon(
                     imageVector = Icons.Default.Info, // Ícono genérico
                     contentDescription = null,

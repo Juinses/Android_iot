@@ -1,6 +1,8 @@
 package com.example.practica.screen
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,9 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,17 +26,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.practica.R
 import com.example.practica.nav.Route
 import com.example.practica.screen.login.AuthViewModel
 
 @Composable
 fun ResetPasswordScreen(nav: NavController, vm: AuthViewModel = viewModel()) {
-    var email by remember { mutableStateOf("") }
-    var code by remember { mutableStateOf("") }
+    // Recuperar email y código desde el ViewModel compartido
+    val email = vm.tempEmailForReset
+    val code = vm.tempCodeForReset
+    
+    // Estados del formulario
     var newPass by remember { mutableStateOf("") }
     var confirmPass by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
@@ -40,92 +52,142 @@ fun ResetPasswordScreen(nav: NavController, vm: AuthViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Center
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Restablecer Contraseña", fontSize = 22.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-        Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(40.dp))
         
+        // Logo
+        Image(
+            painter = painterResource(id = R.drawable.logo),
+            contentDescription = "Logo",
+            modifier = Modifier.size(100.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
-            "Ingresa el código que recibiste por correo y tu nueva contraseña.",
-            style = MaterialTheme.typography.bodyMedium
+            "CREAR CONTRASEÑAS", 
+            fontSize = 20.sp, 
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email (Confírmalo)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = code,
-            onValueChange = { code = it },
-            label = { Text("Código de 5 dígitos") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(8.dp))
         
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Campo Nueva Clave
         OutlinedTextField(
             value = newPass,
             onValueChange = { newPass = it },
-            label = { Text("Nueva contraseña") },
-            modifier = Modifier.fillMaxWidth()
+            label = { Text("INGRESE CLAVE") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
 
+        // Campo Repetir Clave
         OutlinedTextField(
             value = confirmPass,
             onValueChange = { confirmPass = it },
-            label = { Text("Confirmar contraseña") },
-            modifier = Modifier.fillMaxWidth()
+            label = { Text("REPETIR CLAVE") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
         )
 
+        // Mensajes de error
         if (localError != null) {
-            Spacer(Modifier.height(8.dp))
-            Text(localError!!, color = Color.Red, fontSize = 12.sp)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = localError!!, 
+                color = MaterialTheme.colorScheme.error, 
+                fontSize = 14.sp, 
+                fontWeight = FontWeight.Bold,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        } else if (email == null || code == null) {
+             Spacer(Modifier.height(16.dp))
+             Text(
+                 text = "Error de sesión: Vuelva a solicitar el código.",
+                 color = MaterialTheme.colorScheme.error,
+                 fontWeight = FontWeight.Bold,
+                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
+             )
+        }
+        
+        // Ayuda visual
+        if (newPass.isNotEmpty() && !isPasswordRobustReset(newPass)) {
+             Spacer(Modifier.height(8.dp))
+             Text(
+                 text = "Debe tener 8+ caracteres, mayúscula, minúscula, número y símbolo.",
+                 style = MaterialTheme.typography.bodySmall,
+                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
+             )
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(32.dp))
 
+        // Botón CREAR (Morado)
         Button(
             onClick = {
                 localError = null
-                if (email.isBlank() || code.isBlank() || newPass.isBlank() || confirmPass.isBlank()) {
-                    localError = "Todos los campos son obligatorios"
-                } else if (newPass != confirmPass) {
-                    localError = "Las contraseñas no coinciden"
-                } else if (!isPasswordRobustReset(newPass)) {
-                    localError = "Contraseña débil: mín 8 chars, 1 Mayús, 1 minús, 1 num, 1 símbolo."
-                } else {
-                    vm.resetPassword(
-                        email = email,
-                        code = code,
-                        newPass = newPass,
-                        onSuccess = { msg ->
-                            Toast.makeText(context, "Contraseña cambiada: $msg", Toast.LENGTH_LONG).show()
-                            // Volver al Login
-                            nav.navigate(Route.Login.path) {
-                                popUpTo(Route.Login.path) { inclusive = true }
-                            }
-                        },
-                        onFail = { err ->
-                            localError = err
-                        }
-                    )
+                
+                // Validaciones
+                if (email == null || code == null) {
+                    localError = "Falta información (email/código). Reinicie el proceso."
+                    return@Button
                 }
+                if (newPass.isBlank() || confirmPass.isBlank()) {
+                    localError = "Las contraseñas son obligatorias"
+                    return@Button
+                }
+                if (newPass != confirmPass) {
+                    localError = "Las contraseñas no coinciden"
+                    return@Button
+                }
+                if (!isPasswordRobustReset(newPass)) {
+                    localError = "La contraseña es débil"
+                    return@Button
+                }
+                
+                // Llamada REAL al servidor
+                vm.resetPassword(
+                    email = email,
+                    code = code,
+                    newPass = newPass,
+                    onSuccess = { msg ->
+                        Toast.makeText(context, "Contraseña cambiada correctamente", Toast.LENGTH_LONG).show()
+                        // Navegar al Login
+                        nav.navigate(Route.Login.path) {
+                            popUpTo(Route.Login.path) { inclusive = true }
+                        }
+                    },
+                    onFail = { err ->
+                         localError = err
+                    }
+                )
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            enabled = (email != null && code != null) // Bloquear si faltan datos
         ) {
-            Text("Cambiar Contraseña")
+            Text("CREAR", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
         }
     }
 }
 
-// Función auxiliar para validar robustez (copiada para asegurar consistencia)
-fun isPasswordRobustReset(password: String): Boolean {
+private fun isPasswordRobustReset(password: String): Boolean {
     if (password.length < 8) return false
     val hasUpper = password.any { it.isUpperCase() }
     val hasLower = password.any { it.isLowerCase() }

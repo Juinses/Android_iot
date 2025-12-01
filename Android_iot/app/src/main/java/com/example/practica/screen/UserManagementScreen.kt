@@ -1,8 +1,9 @@
 package com.example.practica.screen
 
 import android.widget.Toast
-import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,19 +15,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,8 +49,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,127 +60,249 @@ import androidx.navigation.NavController
 import com.example.practica.data.remote.dto.UserDto
 import com.example.practica.screen.user_management.UserManagementViewModel
 
+enum class UserScreenState {
+    MENU,
+    LIST,
+    CREATE_FORM
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserManagementScreen(nav: NavController, vm: UserManagementViewModel = viewModel()) {
+fun UserManagementScreen(nav: NavController, vm: UserManagementViewModel = viewModel(), currentUserId: Int? = null) {
+    var currentScreen by remember { mutableStateOf(UserScreenState.MENU) }
     val state by vm.uiState
-    var searchQuery by remember { mutableStateOf("") }
-    
-    // Estados para diálogos
-    var showUserDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var selectedUser by remember { mutableStateOf<UserDto?>(null) } // Si es null, es crear nuevo
-    
     val context = LocalContext.current
 
-    // Manejo de mensajes (Toast)
+    // Manejo de mensajes generales (Toast)
     LaunchedEffect(state.successMessage, state.errorMessage) {
         state.successMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            vm.clearMessages()
-            showUserDialog = false
-            showDeleteDialog = false
+            if (currentScreen == UserScreenState.CREATE_FORM) {
+                vm.clearMessages() 
+                currentScreen = UserScreenState.LIST 
+            }
         }
         state.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-            vm.clearMessages()
         }
+    }
+
+    // Botón Atrás físico
+    BackHandler(enabled = currentScreen != UserScreenState.MENU) {
+        vm.clearMessages() 
+        currentScreen = UserScreenState.MENU
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gestión de Usuarios") },
+                title = { 
+                    Text(when(currentScreen) {
+                        UserScreenState.MENU -> "Gestión de Usuarios"
+                        UserScreenState.LIST -> "Listado de Usuarios"
+                        UserScreenState.CREATE_FORM -> "Ingresar Usuario"
+                    })
+                },
                 navigationIcon = {
-                    // Botón Volver si se desea
+                    if (currentScreen != UserScreenState.MENU) {
+                        IconButton(onClick = { 
+                            vm.clearMessages()
+                            currentScreen = UserScreenState.MENU 
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        }
+                    } else {
+                        // Si estamos en menú, volver al Home
+                        IconButton(onClick = { nav.popBackStack() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        }
+                    }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                selectedUser = null // Modo Crear
-                showUserDialog = true
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar")
-            }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            // Buscador
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = {
-                    searchQuery = it
-                    vm.filterUsers(it)
-                },
-                label = { Text("Buscar por nombre o email") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            if (state.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            } else {
-                LazyColumn {
-                    items(state.filteredUsers) { user ->
-                        UserItem(
-                            user = user,
-                            onEdit = {
-                                selectedUser = user
-                                showUserDialog = true
-                            },
-                            onDelete = {
-                                selectedUser = user
-                                showDeleteDialog = true
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                    if (state.filteredUsers.isEmpty()) {
-                        item {
-                            Text(
-                                "No se encontraron usuarios.",
-                                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 20.dp)
-                            )
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            when (currentScreen) {
+                UserScreenState.MENU -> {
+                    UserManagementMenu(
+                        onGoToCreate = { 
+                            vm.clearMessages()
+                            currentScreen = UserScreenState.CREATE_FORM 
+                        },
+                        onGoToList = { 
+                            vm.clearMessages()
+                            currentScreen = UserScreenState.LIST 
                         }
+                    )
+                }
+                UserScreenState.LIST -> {
+                    UserManagementListContent(vm = vm, currentUserId = currentUserId)
+                }
+                UserScreenState.CREATE_FORM -> {
+                    UserManagementCreateContent(
+                        serverError = state.errorMessage,
+                        onConfirm = { name, lastName, email, pass ->
+                            vm.createUser(name, lastName, email, pass)
+                        },
+                        onCancel = { 
+                            vm.clearMessages()
+                            currentScreen = UserScreenState.MENU 
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserManagementMenu(onGoToCreate: () -> Unit, onGoToList: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        MenuButton(
+            text = "Ingresar Usuario",
+            icon = Icons.Default.Add,
+            onClick = onGoToCreate
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        MenuButton(
+            text = "Listar Usuarios",
+            icon = Icons.Default.List,
+            onClick = onGoToList
+        )
+    }
+}
+
+@Composable
+fun MenuButton(text: String, icon: ImageVector, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun UserManagementListContent(vm: UserManagementViewModel, currentUserId: Int?) {
+    val state by vm.uiState
+    var searchQuery by remember { mutableStateOf("") }
+    
+    // Estados locales para diálogos
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedUser by remember { mutableStateOf<UserDto?>(null) }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        // Buscador
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = {
+                searchQuery = it
+                vm.filterUsers(it)
+            },
+            label = { Text("Buscar por nombre o apellidos") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // MENSAJES DE ÉXITO / ERROR EN PANTALLA
+        if (state.successMessage != null) {
+            Text(
+                text = state.successMessage!!,
+                color = Color(0xFF008000), // Verde oscuro
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+        if (state.errorMessage != null) {
+             Text(
+                text = state.errorMessage!!,
+                color = Color.Red,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+        
+        if (state.isLoading) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn {
+                items(state.filteredUsers) { user ->
+                    val isCurrentUser = (currentUserId != null && user.id == currentUserId)
+                    UserItem(
+                        user = user,
+                        isCurrentUser = isCurrentUser,
+                        onEdit = {
+                            vm.clearMessages()
+                            selectedUser = user
+                            showEditDialog = true
+                        },
+                        onDelete = {
+                            vm.clearMessages()
+                            selectedUser = user
+                            showDeleteDialog = true
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                if (state.filteredUsers.isEmpty()) {
+                    item {
+                        Text(
+                            "No se encontraron usuarios.",
+                            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 20.dp),
+                            color = Color.Gray
+                        )
                     }
                 }
             }
         }
     }
     
-    // DIÁLOGO CREAR / EDITAR
-    if (showUserDialog) {
+    // Diálogo de Edición
+    if (showEditDialog && selectedUser != null) {
         UserFormDialog(
             user = selectedUser,
-            onDismiss = { showUserDialog = false },
-            onConfirm = { name, lastName, email, pass ->
-                if (selectedUser == null) {
-                    // Crear
-                    vm.createUser(name, lastName, email, pass)
-                } else {
-                    // Editar (La contraseña no se actualiza aquí por simplicidad, o es opcional)
-                    // backend update usually doesn't need pass unless changing it.
-                    // Asumiremos update de datos básicos
-                    val updatedUser = selectedUser!!.copy(
-                        name = name,
-                        lastName = lastName,
-                        email = email
-                    )
-                    vm.updateUser(updatedUser)
-                }
+            serverError = state.errorMessage, 
+            onDismiss = { 
+                showEditDialog = false 
+                vm.clearMessages()
+            },
+            onConfirm = { name, lastName, email, _ ->
+                val updatedUser = selectedUser!!.copy(
+                    name = name,
+                    lastName = lastName,
+                    email = email
+                )
+                vm.updateUser(updatedUser)
             }
         )
+        
+        if (state.successMessage != null) {
+            showEditDialog = false
+        }
     }
 
-    // DIÁLOGO CONFIRMAR ELIMINAR
+    // Diálogo de Eliminación
     if (showDeleteDialog && selectedUser != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -182,13 +311,14 @@ fun UserManagementScreen(nav: NavController, vm: UserManagementViewModel = viewM
             confirmButton = {
                 TextButton(onClick = {
                     vm.deleteUser(selectedUser!!.id)
+                    showDeleteDialog = false
                 }) {
                     Text("Sí, eliminar", color = Color.Red)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
+                    Text("No") 
                 }
             }
         )
@@ -196,8 +326,183 @@ fun UserManagementScreen(nav: NavController, vm: UserManagementViewModel = viewM
 }
 
 @Composable
+fun UserManagementCreateContent(
+    serverError: String?,
+    onConfirm: (String, String, String, String) -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        UserFormFields(
+            user = null, // Es creación
+            serverError = serverError,
+            onConfirm = onConfirm,
+            onCancel = onCancel
+        )
+    }
+}
+
+@Composable
+fun UserFormFields(
+    user: UserDto?,
+    serverError: String? = null,
+    onConfirm: (String, String, String, String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var name by remember { mutableStateOf(user?.name ?: "") }
+    var lastName by remember { mutableStateOf(user?.lastName ?: "") }
+    var email by remember { mutableStateOf(user?.email ?: "") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    
+    var localError by remember { mutableStateOf<String?>(null) }
+    
+    // Validaciones
+    val lettersRegex = Regex("^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$")
+    val strictEmailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = name, onValueChange = { name = it }, label = { Text("Nombre") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = localError?.contains("Nombre") == true
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = lastName, onValueChange = { lastName = it }, label = { Text("Apellido") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = localError?.contains("Apellido") == true
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = email, onValueChange = { email = it }, label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = localError?.contains("Email") == true
+        )
+        
+        if (user == null) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = password, 
+                onValueChange = { password = it }, 
+                label = { Text("Contraseña") },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                isError = localError?.contains("Contraseña") == true
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = confirmPassword, 
+                onValueChange = { confirmPassword = it }, 
+                label = { Text("Confirmar contraseña") },
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
+                isError = localError?.contains("coinciden") == true
+            )
+            
+            if (password.isNotEmpty() && !com.example.practica.screen.isPasswordRobust(password)) {
+                 Spacer(Modifier.height(4.dp))
+                 Text(
+                     text = "Debe tener 8+ caracteres, mayúscula, minúscula, número y símbolo.",
+                     style = MaterialTheme.typography.bodySmall,
+                     color = Color.Gray
+                 )
+            }
+        }
+
+        if (localError != null) {
+            Spacer(Modifier.height(16.dp))
+            Text(localError!!, color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        } else if (serverError != null) {
+            Spacer(Modifier.height(16.dp))
+            Text(serverError, color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+        
+        Spacer(Modifier.height(24.dp))
+        
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Cancelar")
+            }
+            Spacer(Modifier.width(16.dp))
+            Button(
+                onClick = {
+                    localError = null
+                    // Validaciones
+                    if (name.isBlank() || lastName.isBlank() || email.isBlank()) {
+                        localError = "Campos obligatorios vacíos"
+                        return@Button
+                    }
+                    if (!name.matches(lettersRegex) || !lastName.matches(lettersRegex)) {
+                        localError = "Nombres y apellidos: solo letras y espacios"
+                        return@Button
+                    }
+                    if (!email.matches(strictEmailRegex)) {
+                        localError = "Email inválido (ej: usuario@dominio.com)"
+                        return@Button
+                    }
+                    if (user == null) {
+                        if (password.isBlank()) {
+                            localError = "Contraseña obligatoria"
+                            return@Button
+                        }
+                        if (!com.example.practica.screen.isPasswordRobust(password)) {
+                            localError = "Contraseña débil o formato inválido"
+                            return@Button
+                        }
+                        if (password != confirmPassword) {
+                            localError = "Contraseñas no coinciden"
+                            return@Button
+                        }
+                    }
+                    onConfirm(name, lastName, email, password)
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Guardar")
+            }
+        }
+    }
+}
+
+@Composable
+fun UserFormDialog(
+    user: UserDto?, 
+    serverError: String? = null,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, String, String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (user == null) "Nuevo Usuario" else "Modificar Usuario") },
+        text = {
+             Column(Modifier.verticalScroll(rememberScrollState())) {
+                 UserFormFields(
+                     user = user,
+                     serverError = serverError,
+                     onConfirm = onConfirm,
+                     onCancel = onDismiss 
+                 )
+             }
+        },
+        confirmButton = {}, 
+        dismissButton = {}
+    )
+}
+
+@Composable
 fun UserItem(
     user: UserDto,
+    isCurrentUser: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -227,88 +532,18 @@ fun UserItem(
                 Text(text = user.email, fontSize = 14.sp, color = Color.Gray)
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color.Blue)
+                Icon(Icons.Default.Edit, contentDescription = "Modificar", tint = MaterialTheme.colorScheme.primary)
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
+            
+            // Solo mostrar botón de borrar si NO es el usuario actual
+            if (!isCurrentUser) {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
+                }
+            } else {
+                // Espaciador para mantener alineación visual si se quisiera, o simplemente nada
+                Spacer(modifier = Modifier.width(48.dp)) 
             }
         }
     }
-}
-
-@Composable
-fun UserFormDialog(
-    user: UserDto?, // Si es null, es crear
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String) -> Unit
-) {
-    var name by remember { mutableStateOf(user?.name ?: "") }
-    var lastName by remember { mutableStateOf(user?.lastName ?: "") }
-    var email by remember { mutableStateOf(user?.email ?: "") }
-    var password by remember { mutableStateOf("") } // Solo obligatoria al crear
-    var confirmPassword by remember { mutableStateOf("") }
-    
-    var localError by remember { mutableStateOf<String?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (user == null) "Nuevo Usuario" else "Editar Usuario") },
-        text = {
-            Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") })
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Apellido") })
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
-                
-                // Password solo visible al crear (o si quisieras cambiarla al editar, pero simplificaremos)
-                if (user == null) {
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Contraseña") })
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = { Text("Confirmar pass") })
-                }
-
-                if (localError != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(localError!!, color = Color.Red, fontSize = 12.sp)
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                localError = null
-                // Validaciones básicas
-                if (name.isBlank() || lastName.isBlank() || email.isBlank()) {
-                    localError = "Campos obligatorios vacíos"
-                    return@Button
-                }
-                if (user == null) {
-                    // Validaciones extra al crear
-                    if (password.isBlank()) {
-                        localError = "Contraseña obligatoria"
-                        return@Button
-                    }
-                    if (password != confirmPassword) {
-                        localError = "Contraseñas no coinciden"
-                        return@Button
-                    }
-                    // Validación robustez pass (opcional según rúbrica aquí también)
-                    if (password.length < 6) { // Ejemplo simple
-                        localError = "Contraseña muy corta"
-                        return@Button
-                    }
-                }
-                
-                onConfirm(name, lastName, email, password)
-            }) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
 }

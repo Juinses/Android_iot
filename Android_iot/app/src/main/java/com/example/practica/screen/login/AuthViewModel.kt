@@ -23,6 +23,10 @@ class AuthViewModel(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Checking)
     val authState: StateFlow<AuthState> = _authState
 
+    // Datos temporales para el flujo de recuperación de contraseña
+    var tempEmailForReset: String? = null
+    var tempCodeForReset: String? = null
+
     init {
         checkSession()
     }
@@ -83,7 +87,10 @@ class AuthViewModel(
         viewModelScope.launch {
             val res = repo.forgotPassword(email)
             res.fold(
-                onSuccess = { msg -> onSuccess(msg) },
+                onSuccess = { msg -> 
+                    tempEmailForReset = email // Guardamos el email exitoso
+                    onSuccess(msg) 
+                },
                 onFailure = { err -> onFail(err.message ?: "Error desconocido") }
             )
         }
@@ -93,7 +100,12 @@ class AuthViewModel(
         viewModelScope.launch {
             val res = repo.resetPassword(email, code, newPass)
             res.fold(
-                onSuccess = { msg -> onSuccess(msg) },
+                onSuccess = { msg -> 
+                    // Limpiamos datos temporales
+                    tempEmailForReset = null
+                    tempCodeForReset = null
+                    onSuccess(msg) 
+                },
                 onFailure = { err -> onFail(err.message ?: "Error desconocido") }
             )
         }

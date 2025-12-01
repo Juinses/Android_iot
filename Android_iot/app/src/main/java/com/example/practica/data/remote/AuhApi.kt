@@ -8,8 +8,9 @@ import com.example.practica.data.remote.dto.RegisterRequest
 import com.example.practica.data.remote.dto.RegisterResponse
 import com.example.practica.data.remote.dto.ResetPasswordRequest
 import com.example.practica.data.remote.dto.ResetPasswordResponse
+import com.example.practica.data.remote.dto.UserActionResponse
 import com.example.practica.data.remote.dto.UserDto
-import retrofit2.Response
+import com.example.practica.data.remote.dto.UserListResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -19,7 +20,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface AuthApi {
-    @POST("auth/login") // o "/auth/login" según cómo definiste BASE_URL
+    @POST("auth/login")
     suspend fun login(@Body body: LoginRequest): LoginResponse
     @GET("profile")
     suspend fun profile(
@@ -35,19 +36,19 @@ interface AuthApi {
     @POST("auth/reset-password")
     suspend fun resetPassword(@Body body: ResetPasswordRequest): ResetPasswordResponse
 
-    // --- CRUD USUARIOS ---
-    @GET("users")
-    suspend fun getUsers(): List<UserDto>
+    // --- CRUD USUARIOS (Rutas actualizadas a /admin/users) ---
+    @GET("admin/users")
+    suspend fun getUsers(): UserListResponse  // Ahora devuelve objeto { success, users }
 
-    // Para crear usuario desde admin (usamos el mismo DTO de registro pero en endpoint users)
-    @POST("users")
-    suspend fun createUser(@Body body: RegisterRequest): RegisterResponse 
-    // (Si tu API devuelve UserDto al crear, cambia el retorno)
+    @POST("admin/users")
+    suspend fun createUser(@Body body: RegisterRequest): UserActionResponse 
+    // Devuelve { success, user }
 
-    @PUT("users/{id}")
-    suspend fun updateUser(@Path("id") id: Int, @Body body: UserDto): UserDto
+    @PUT("admin/users/{id}")
+    suspend fun updateUser(@Path("id") id: Int, @Body body: UserDto): UserActionResponse
+    // Devuelve { success, message }
 
-    @DELETE("users/{id}")
-    suspend fun deleteUser(@Path("id") id: Int): Response<Unit> 
-    // Usamos Response<Unit> para saber si fue 200/204
+    @DELETE("admin/users/{id}")
+    suspend fun deleteUser(@Path("id") id: Int): UserActionResponse
+    // Devuelve { success, message }
 }

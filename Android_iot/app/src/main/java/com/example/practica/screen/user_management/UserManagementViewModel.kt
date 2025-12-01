@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.practica.data.AuthRepository
 import com.example.practica.data.remote.dto.UserDto
 import kotlinx.coroutines.launch
+import java.text.Normalizer
 
 data class UserManagementState(
     val users: List<UserDto> = emptyList(),
@@ -48,15 +49,23 @@ class UserManagementViewModel(
         }
     }
 
+    // Función auxiliar para normalizar texto (quitar acentos y mayúsculas)
+    private fun String.normalized(): String {
+        val normalized = Normalizer.normalize(this, Normalizer.Form.NFD)
+        val pattern = "\\p{InCombiningDiacriticalMarks}+".toRegex()
+        return pattern.replace(normalized, "").lowercase()
+    }
+
     fun filterUsers(query: String) {
         val all = uiState.value.users
         if (query.isBlank()) {
             uiState.value = uiState.value.copy(filteredUsers = all)
         } else {
+            val normalizedQuery = query.normalized()
             val filtered = all.filter {
-                it.name.contains(query, ignoreCase = true) ||
-                (it.lastName?.contains(query, ignoreCase = true) == true) ||
-                it.email.contains(query, ignoreCase = true)
+                it.name.normalized().contains(normalizedQuery) ||
+                (it.lastName?.normalized()?.contains(normalizedQuery) == true) ||
+                it.email.normalized().contains(normalizedQuery)
             }
             uiState.value = uiState.value.copy(filteredUsers = filtered)
         }
@@ -70,14 +79,14 @@ class UserManagementViewModel(
                 onSuccess = {
                     uiState.value = uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Usuario creado correctamente"
+                        successMessage = "Registro exitoso"
                     )
                     loadUsers() // Recargar lista
                 },
                 onFailure = {
                     uiState.value = uiState.value.copy(
                         isLoading = false,
-                        errorMessage = "Error al crear: ${it.message}"
+                        errorMessage = "Error al registrar: ${it.message}"
                     )
                 }
             )
@@ -92,14 +101,14 @@ class UserManagementViewModel(
                 onSuccess = {
                     uiState.value = uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Usuario actualizado"
+                        successMessage = "Usuario modificado correctamente"
                     )
                     loadUsers()
                 },
                 onFailure = {
                     uiState.value = uiState.value.copy(
                         isLoading = false,
-                        errorMessage = "Error al actualizar: ${it.message}"
+                        errorMessage = "Error al modificar: ${it.message}"
                     )
                 }
             )
@@ -114,7 +123,7 @@ class UserManagementViewModel(
                 onSuccess = {
                     uiState.value = uiState.value.copy(
                         isLoading = false,
-                        successMessage = "Usuario eliminado"
+                        successMessage = "Usuario eliminado correctamente"
                     )
                     loadUsers()
                 },

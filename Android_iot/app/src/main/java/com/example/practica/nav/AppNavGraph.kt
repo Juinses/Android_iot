@@ -104,7 +104,9 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
             ResetPasswordScreen(nav, vm)
         }
         composable(Route.UserManagement.path) {
-            UserManagementScreen(nav)
+            // Obtenemos el ID del usuario actual si está autenticado
+            val currentUserId = (authState as? AuthState.Authenticated)?.user?.id
+            UserManagementScreen(nav, currentUserId = currentUserId)
         }
         composable(Route.Sensors.path) {
             SensorsScreen(nav)

@@ -45,6 +45,7 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun HomeScreen(
@@ -78,6 +79,8 @@ fun HomeContent(
     LaunchedEffect(Unit) {
         while (true) {
             val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
+            // Configuramos explícitamente la zona horaria de Chile
+            sdf.timeZone = TimeZone.getTimeZone("America/Santiago")
             currentTime = sdf.format(Date())
             delay(1000)
         }

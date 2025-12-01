@@ -1,6 +1,5 @@
 package com.example.practica.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -13,9 +12,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryBlueDark,
-    secondary = SecondaryCyanDark,
-    tertiary = TertiaryOrangeDark,
+    primary = PrimaryPurpleDark,
+    secondary = SecondaryTealDark,
+    tertiary = TertiaryPinkDark,
     background = BackgroundDark,
     surface = SurfaceDark,
     onPrimary = Color.Black,
@@ -26,14 +25,14 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
-    secondary = SecondaryCyan,
-    tertiary = TertiaryOrange,
+    primary = PrimaryPurple,
+    secondary = SecondaryTeal,
+    tertiary = TertiaryPink,
     background = BackgroundLight,
     surface = SurfaceLight,
     onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onTertiary = Color.Black,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
     onBackground = Color.Black,
     onSurface = Color.Black
 )
@@ -41,8 +40,8 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun PracticaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Desactivamos el color dinámico por defecto para que NUESTROS colores resalten
-    dynamicColor: Boolean = false,
+    // Desactivamos color dinámico para forzar NUESTRA paleta morada
+    dynamicColor: Boolean = false, 
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
