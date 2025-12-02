@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,22 +60,23 @@ fun SensorsScreen(nav: NavController, vm: SensorViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Sensores IOT", style = MaterialTheme.typography.headlineMedium)
+        Text("Sensores IOT", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- SECCIÓN 1: DATOS DE LA API (Temperatura y Humedad) ---
         if (state.isLoading && state.temperature == null) {
             CircularProgressIndicator()
-            Text("Cargando sensores...")
+            Text("Cargando sensores...", color = MaterialTheme.colorScheme.onBackground)
         } else {
             // Muestra error si existe, pero sigue mostrando datos antiguos si los hay
             if (state.errorMessage != null) {
                 Text(
                     text = state.errorMessage ?: "",
-                    color = Color.Red,
+                    color = MaterialTheme.colorScheme.error,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -90,7 +92,7 @@ fun SensorsScreen(nav: NavController, vm: SensorViewModel = viewModel()) {
         Spacer(modifier = Modifier.height(32.dp))
 
         // --- SECCIÓN 2: CONTROL DE DISPOSITIVOS (Ampolleta y Linterna) ---
-        Text("Control de Dispositivos", style = MaterialTheme.typography.titleLarge)
+        Text("Control de Dispositivos", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
@@ -147,26 +149,33 @@ fun SensorsScreen(nav: NavController, vm: SensorViewModel = viewModel()) {
 fun SensorDataCard(temperature: Float?, humidity: Float?, lastUpdate: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // TEMPERATURA
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Lógica de color: Azul si <= 20, Rojo si > 20
-                val tempColor = if ((temperature ?: 0f) <= 20f) Color.Blue else Color.Red
+                // Lógica: > 20 °C es "Alta", <= 20 °C es "Baja"
+                val isHighTemp = (temperature ?: 0f) > 20f
+                
+                val tempColor = if (isHighTemp) Color.Red else Color.Blue
+                // Icono dinámico: Warning (alerta/calor) si es alta, Info (frío/info) si es baja
+                val tempIcon = if (isHighTemp) Icons.Default.Warning else Icons.Default.Info
+
                 Icon(
-                    imageVector = Icons.Default.Info, // Ícono genérico
+                    imageVector = tempIcon,
                     contentDescription = null,
                     tint = tempColor,
                     modifier = Modifier.size(40.dp)
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text("Temperatura")
+                    Text("Temperatura", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = temperature?.let { "$it °C" } ?: "-- °C",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -183,11 +192,12 @@ fun SensorDataCard(temperature: Float?, humidity: Float?, lastUpdate: String?) {
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text("Humedad")
+                    Text("Humedad", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = humidity?.let { "$it %" } ?: "-- %",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -228,7 +238,7 @@ fun DeviceControlCard(
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Text(label)
+        Text(label, color = MaterialTheme.colorScheme.onBackground)
         Text(
             text = if (isOn) "ON" else "OFF",
             fontWeight = FontWeight.Bold,

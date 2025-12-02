@@ -1,6 +1,7 @@
 package com.example.practica.screen
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -33,12 +34,13 @@ fun DeveloperScreen(nav: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Datos del Desarrollador", style = MaterialTheme.typography.headlineSmall)
+        Text("Datos del Desarrollador", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
         Spacer(modifier = Modifier.height(20.dp))
         
         DeveloperCard(
@@ -63,6 +65,7 @@ fun DeveloperCard(name: String, role: String, email: String, institution: String
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -80,14 +83,14 @@ fun DeveloperCard(name: String, role: String, email: String, institution: String
                     .clip(CircleShape)
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(4.dp))
             Text(role, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(email, style = MaterialTheme.typography.bodyMedium)
+            Text(email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(institution, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-            Text(section, style = MaterialTheme.typography.bodySmall)
+            Text(institution, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(section, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
             Text(githubUrl, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         }

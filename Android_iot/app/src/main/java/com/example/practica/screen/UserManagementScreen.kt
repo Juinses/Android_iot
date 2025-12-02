@@ -2,6 +2,7 @@ package com.example.practica.screen
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -97,11 +99,14 @@ fun UserManagementScreen(nav: NavController, vm: UserManagementViewModel = viewM
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(when(currentScreen) {
-                        UserScreenState.MENU -> "Gestión de Usuarios"
-                        UserScreenState.LIST -> "Listado de Usuarios"
-                        UserScreenState.CREATE_FORM -> "Ingresar Usuario"
-                    })
+                    Text(
+                        when(currentScreen) {
+                            UserScreenState.MENU -> "Gestión de Usuarios"
+                            UserScreenState.LIST -> "Listado de Usuarios"
+                            UserScreenState.CREATE_FORM -> "Ingresar Usuario"
+                        },
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                 },
                 navigationIcon = {
                     if (currentScreen != UserScreenState.MENU) {
@@ -109,19 +114,24 @@ fun UserManagementScreen(nav: NavController, vm: UserManagementViewModel = viewM
                             vm.clearMessages()
                             currentScreen = UserScreenState.MENU 
                         }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     } else {
                         // Si estamos en menú, volver al Home
                         IconButton(onClick = { nav.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                )
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Box(modifier = Modifier.padding(padding).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             when (currentScreen) {
                 UserScreenState.MENU -> {
                     UserManagementMenu(
@@ -185,15 +195,16 @@ fun MenuButton(text: String, icon: ImageVector, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp),
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(32.dp))
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onPrimary)
             Spacer(modifier = Modifier.width(16.dp))
-            Text(text = text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(text = text, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
@@ -235,7 +246,7 @@ fun UserManagementListContent(vm: UserManagementViewModel, currentUserId: Int?) 
         if (state.errorMessage != null) {
              Text(
                 text = state.errorMessage!!,
-                color = Color.Red,
+                color = MaterialTheme.colorScheme.error,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -313,7 +324,7 @@ fun UserManagementListContent(vm: UserManagementViewModel, currentUserId: Int?) 
                     vm.deleteUser(selectedUser!!.id)
                     showDeleteDialog = false
                 }) {
-                    Text("Sí, eliminar", color = Color.Red)
+                    Text("Sí, eliminar", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -417,10 +428,10 @@ fun UserFormFields(
 
         if (localError != null) {
             Spacer(Modifier.height(16.dp))
-            Text(localError!!, color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(localError!!, color = MaterialTheme.colorScheme.error, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         } else if (serverError != null) {
             Spacer(Modifier.height(16.dp))
-            Text(serverError, color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(serverError, color = MaterialTheme.colorScheme.error, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
         
         Spacer(Modifier.height(24.dp))
@@ -508,6 +519,7 @@ fun UserItem(
 ) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -527,7 +539,8 @@ fun UserItem(
                 Text(
                     text = "${user.name} ${user.lastName ?: ""}",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(text = user.email, fontSize = 14.sp, color = Color.Gray)
             }

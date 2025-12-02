@@ -1,6 +1,7 @@
 package com.example.practica.screen
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -54,6 +55,7 @@ Unit,
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(20.dp),
         verticalArrangement = Arrangement.Center
     ) {
@@ -67,6 +69,7 @@ Unit,
         )
         Text("Bienvenido",
             fontSize = 23.sp,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(Modifier.height(20.dp))
@@ -107,11 +110,11 @@ Unit,
         // Mostrar errores (Locales o del ViewModel)
         if (localError != null) {
             Spacer(Modifier.height(8.dp))
-            Text(localError!!, color = Color.Red)
+            Text(localError!!, color = MaterialTheme.colorScheme.error)
         }
         if (errorMessage != null) {
             Spacer(Modifier.height(8.dp))
-            Text(errorMessage, color = Color.Red)
+            Text(errorMessage, color = MaterialTheme.colorScheme.error)
         }
         
         // Sección de enlaces (Registro y Recuperar)

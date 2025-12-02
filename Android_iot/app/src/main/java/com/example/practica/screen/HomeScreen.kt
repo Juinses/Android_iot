@@ -96,13 +96,13 @@ fun HomeContent(
         // Saludo y Reloj
         if (authState is AuthState.Authenticated) {
             val user = (authState as AuthState.Authenticated).user
-            Text("Hola, ${user.name}", style = MaterialTheme.typography.headlineSmall)
+            Text("Hola, ${user.name}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
         } else {
-            Text("Bienvenido", style = MaterialTheme.typography.headlineSmall)
+            Text("Bienvenido", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
         }
         
         Spacer(Modifier.height(8.dp))
-        Text(currentTime, style = MaterialTheme.typography.titleLarge)
+        Text(currentTime, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
         
         Spacer(Modifier.height(40.dp))
 
@@ -155,6 +155,7 @@ fun MenuCard(
             .fillMaxWidth()
             .height(100.dp)
             .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -175,8 +176,8 @@ fun MenuCard(
                     .padding(start = 16.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                Text(text = subtitle, style = MaterialTheme.typography.bodyMedium)
+                Text(text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

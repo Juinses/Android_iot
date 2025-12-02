@@ -8,5 +8,5 @@
         <!-- (Opcional) Duración si agregas icono animado de compat -->
         <item name="postSplashScreenTheme">@style/PracticaTheme.App</item>
     </style>
-    <style name="PracticaTheme.App" parent="Theme.AppCompat.Light.NoActionBar" />
+    <style name="PracticaTheme.App" parent="Theme.AppCompat.DayNight.NoActionBar" />
 </resources>
