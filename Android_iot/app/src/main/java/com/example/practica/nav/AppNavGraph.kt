@@ -1,8 +1,6 @@
 package com.example.practica.nav
 
-import com.example.practica.R
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -10,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,11 +16,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -33,14 +27,15 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.practica.screen.DeveloperScreen
+import com.example.practica.screen.ForgotPasswordScreen
 import com.example.practica.screen.HomeScreen
 import com.example.practica.screen.LoginScreen
 import com.example.practica.screen.RegisterScreen
-import com.example.practica.screen.ForgotPasswordScreen
 import com.example.practica.screen.ResetPasswordScreen
-import com.example.practica.screen.UserManagementScreen
 import com.example.practica.screen.SensorsScreen
-import com.example.practica.screen.DeveloperScreen
+import com.example.practica.screen.UserManagementScreen
+import com.example.practica.screen.led.LedControlScreen
 import com.example.practica.screen.login.AuthState
 import com.example.practica.screen.login.AuthViewModel
 import kotlinx.coroutines.delay
@@ -58,8 +53,7 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
                 
                 when (authState) {
                     AuthState.Checking -> {
-                        // Sigue chequeando, pero si pasa el tiempo y sigue aquí, podría haber error.
-                        // Normalmente Checking dura milisegundos.
+                        // Sigue chequeando
                     }
                     is AuthState.Authenticated -> {
                         nav.navigate(Route.Home.path) {
@@ -114,12 +108,18 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
         composable(Route.Developer.path) {
             DeveloperScreen(nav)
         }
+        composable(Route.LedControl.path) {
+            LedControlScreen(
+                onBackClick = { nav.popBackStack() }
+            )
+        }
     }
 }
+
 @Composable
 fun SplashLottie() {
     val composition by rememberLottieComposition(
-        LottieCompositionSpec.RawRes(R.raw.loading_lottie)
+        LottieCompositionSpec.RawRes(com.example.practica.R.raw.loading_lottie)
     )
     val animState = animateLottieCompositionAsState(
         composition,

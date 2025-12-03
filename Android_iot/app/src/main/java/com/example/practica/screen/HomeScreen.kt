@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -49,17 +50,19 @@ import java.util.TimeZone
 
 @Composable
 fun HomeScreen(
-    nav: NavController? = null, // Opcional para preview
+    nav: NavController? = null,
     vm: AuthViewModel = viewModel(),
     onLogoutDone: () -> Unit
 ) {
     val authState by vm.authState.collectAsState()
+
     // Si después de logout el estado cambia a Unauthenticated, navegar
     LaunchedEffect(authState) {
         if (authState is AuthState.Unauthenticated) {
             onLogoutDone()
         }
     }
+
     HomeContent(
         authState = authState,
         onLogout = { vm.logout() },
@@ -95,7 +98,7 @@ fun HomeContent(
     ) {
         // Saludo y Reloj
         if (authState is AuthState.Authenticated) {
-            val user = (authState as AuthState.Authenticated).user
+            val user = authState.user
             Text("Hola, ${user.name}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
         } else {
             Text("Bienvenido", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
@@ -104,11 +107,13 @@ fun HomeContent(
         Spacer(Modifier.height(8.dp))
         Text(currentTime, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
         
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(32.dp))
 
-        // Botones del Menú
+        // --- Menú de Opciones ---
+        
+        // 1. Gestión de Usuarios
         MenuCard(
-            icon = Icons.Default.Person, // Usando ícono básico
+            icon = Icons.Default.Person,
             title = "Gestión de Usuarios",
             subtitle = "CRUD de Usuarios",
             onClick = { onNavigate(Route.UserManagement.path) }
@@ -116,17 +121,29 @@ fun HomeContent(
         
         Spacer(Modifier.height(16.dp))
         
+        // 2. Sensores
         MenuCard(
-            icon = Icons.Default.Notifications, // Usando ícono básico
+            icon = Icons.Default.Notifications,
             title = "Sensores IOT",
-            subtitle = "Ver datos de temperatura y luces",
+            subtitle = "Ver datos de temperatura y humedad",
             onClick = { onNavigate(Route.Sensors.path) }
         )
 
         Spacer(Modifier.height(16.dp))
-        
+
+        // 3. Control LED
         MenuCard(
-            icon = Icons.Default.Info, // Usando ícono básico
+            icon = Icons.Default.Build,
+            title = "Controlar LEDs",
+            subtitle = "Encender/Apagar LEDs remotos",
+            onClick = { onNavigate(Route.LedControl.path) }
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        // 4. Datos Desarrollador
+        MenuCard(
+            icon = Icons.Default.Info,
             title = "Datos Desarrollador",
             subtitle = "Información del equipo",
             onClick = { onNavigate(Route.Developer.path) }
@@ -134,6 +151,7 @@ fun HomeContent(
 
         Spacer(Modifier.height(40.dp))
 
+        // Botón de Logout
         Button(
             onClick = onLogout,
             modifier = Modifier.fillMaxWidth()
@@ -153,10 +171,10 @@ fun MenuCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
+            .height(90.dp)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -167,7 +185,7 @@ fun MenuCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(40.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
             Column(

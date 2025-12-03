@@ -31,4 +31,5 @@ object HttpClient {
         .build()
     val authApi: AuthApi = retrofit.create(AuthApi::class.java)
     val sensorApi: SensorApi = retrofit.create(SensorApi::class.java)
+    val ledApi: LedApi = retrofit.create(LedApi::class.java)
 }

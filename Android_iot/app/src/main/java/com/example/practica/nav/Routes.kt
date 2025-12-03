@@ -9,4 +9,5 @@ sealed class Route(val path: String) {
     data object UserManagement : Route("user_management")
     data object Sensors : Route("sensors")
     data object Developer : Route("developer")
+    data object LedControl : Route("ledControl")
 }
