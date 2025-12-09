@@ -1,6 +1,7 @@
 package com.example.practica.data.remote
 
 import com.example.practica.data.remote.dto.LedDto
+import com.example.practica.data.remote.dto.LedListResponse
 import com.example.practica.data.remote.dto.LedUpdateRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -9,7 +10,7 @@ import retrofit2.http.Path
 
 interface LedApi {
     @GET("api/leds")
-    suspend fun getLeds(): List<LedDto>
+    suspend fun getLeds(): LedListResponse
 
     @PUT("api/leds/{id}")
     suspend fun updateLed(

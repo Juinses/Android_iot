@@ -8,7 +8,8 @@ class LedRepository(
 ) {
 
     suspend fun getLeds(): List<LedDto> {
-        return api.getLeds()
+        // Obtenemos el objeto envoltorio y devolvemos solo la lista interna
+        return api.getLeds().data
     }
 
     suspend fun updateLed(id: Int, state: Boolean): LedDto {
