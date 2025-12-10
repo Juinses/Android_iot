@@ -6,7 +6,9 @@ data class RegisterRequest(
     val name: String,
     @Json(name = "last_name") val lastName: String,
     val email: String,
-    val password: String
+    val password: String,
+    @Json(name = "rol") val role: String? = "OPERADOR",
+    @Json(name = "id_departamento") val departmentId: Int? = null
 )
 
 data class RegisterResponse(

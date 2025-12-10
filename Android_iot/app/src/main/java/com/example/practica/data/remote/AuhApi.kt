@@ -1,5 +1,7 @@
 package com.example.practica.data.remote
 
+import com.example.practica.data.remote.dto.AccessEventDto
+import com.example.practica.data.remote.dto.AccessSensorDto
 import com.example.practica.data.remote.dto.ForgotPasswordRequest
 import com.example.practica.data.remote.dto.ForgotPasswordResponse
 import com.example.practica.data.remote.dto.LoginRequest
@@ -18,6 +20,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AuthApi {
     @POST("auth/login")
@@ -51,4 +54,21 @@ interface AuthApi {
     @DELETE("admin/users/{id}")
     suspend fun deleteUser(@Path("id") id: Int): UserActionResponse
     // Devuelve { success, message }
+    
+    // --- NUEVAS RUTAS PARA SENSORES Y EVENTOS ---
+    
+    @GET("sensores")
+    suspend fun getSensores(@Query("id_departamento") departmentId: Int? = null): List<AccessSensorDto>
+    
+    @POST("sensores")
+    suspend fun createSensor(@Body sensor: AccessSensorDto): AccessSensorDto
+    
+    @PUT("sensores/{id}")
+    suspend fun updateSensor(@Path("id") id: Int, @Body sensor: AccessSensorDto): AccessSensorDto
+    
+    @GET("eventos")
+    suspend fun getEventos(@Query("id_usuario") userId: Int? = null, @Query("id_departamento") departmentId: Int? = null): List<AccessEventDto>
+    
+    @POST("eventos")
+    suspend fun registrarEvento(@Body evento: AccessEventDto): AccessEventDto
 }

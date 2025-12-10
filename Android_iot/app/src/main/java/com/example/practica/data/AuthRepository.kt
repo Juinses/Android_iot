@@ -5,6 +5,8 @@ import android.util.Log
 import com.example.practica.data.local.TokenStorage
 import com.example.practica.data.remote.AuthApi
 import com.example.practica.data.remote.HttpClient
+import com.example.practica.data.remote.dto.AccessEventDto
+import com.example.practica.data.remote.dto.AccessSensorDto
 import com.example.practica.data.remote.dto.ForgotPasswordRequest
 import com.example.practica.data.remote.dto.LoginRequest
 import com.example.practica.data.remote.dto.LoginResponse
@@ -29,6 +31,15 @@ class AuthRepository(
             if (!response.success) {
                 return Result.failure(Exception("Credenciales inválidas"))
             }
+            
+            // VALIDACIÓN ADICIONAL DEL USUARIO
+            val user = response.user
+            if (user != null) {
+                if (user.status == "INACTIVO" || user.status == "BLOQUEADO") {
+                     return Result.failure(Exception("Usuario ${user.status}. Contacte al administrador."))
+                }
+            }
+            
             // 4. Guardamos el token en DataStore
             TokenStorage.saveToken(ctx, response.token)
             // 5. Devolvemos el paquete completo (token + user)
@@ -51,7 +62,10 @@ class AuthRepository(
             val token = getStoredToken(ctx)
                 ?: return Result.failure(Exception("Sin token guardado"))
             val user = api.profile("Bearer $token")
-            // Aquí valida contra backend
+            // Validar estado nuevamente
+             if (user.status == "INACTIVO" || user.status == "BLOQUEADO") {
+                 return Result.failure(Exception("Usuario ${user.status}. Contacte al administrador."))
+            }
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -113,9 +127,9 @@ class AuthRepository(
         }
     }
 
-    suspend fun createUser(name: String, lastName: String, email: String, password: String): Result<String> {
+    suspend fun createUser(name: String, lastName: String, email: String, password: String, role: String = "OPERADOR", departmentId: Int? = null): Result<String> {
         return try {
-            val body = RegisterRequest(name, lastName, email, password)
+            val body = RegisterRequest(name, lastName, email, password, role, departmentId)
             val response = api.createUser(body)
             if (response.success) {
                  Result.success("Usuario creado correctamente")
@@ -151,6 +165,54 @@ class AuthRepository(
             } else {
                 Result.failure(Exception(response.message ?: "Error al eliminar"))
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // ---------- GESTIÓN DE SENSORES ----------
+    suspend fun getSensors(departmentId: Int? = null): Result<List<AccessSensorDto>> {
+        return try {
+            val sensors = api.getSensores(departmentId)
+            Result.success(sensors)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun createSensor(sensor: AccessSensorDto): Result<AccessSensorDto> {
+        return try {
+            val newSensor = api.createSensor(sensor)
+            Result.success(newSensor)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun updateSensor(sensor: AccessSensorDto): Result<AccessSensorDto> {
+        return try {
+            if (sensor.id == null) return Result.failure(Exception("ID de sensor nulo"))
+            val updatedSensor = api.updateSensor(sensor.id, sensor)
+            Result.success(updatedSensor)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // ---------- GESTIÓN DE EVENTOS ----------
+    suspend fun getEvents(userId: Int? = null, departmentId: Int? = null): Result<List<AccessEventDto>> {
+        return try {
+            val events = api.getEventos(userId, departmentId)
+            Result.success(events)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun registerAccessEvent(event: AccessEventDto): Result<AccessEventDto> {
+        return try {
+            val newEvent = api.registrarEvento(event)
+            Result.success(newEvent)
         } catch (e: Exception) {
             Result.failure(e)
         }
