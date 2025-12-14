@@ -5,8 +5,6 @@ import android.util.Log
 import com.example.practica.data.local.TokenStorage
 import com.example.practica.data.remote.AuthApi
 import com.example.practica.data.remote.HttpClient
-import com.example.practica.data.remote.dto.AccessEventDto
-import com.example.practica.data.remote.dto.AccessSensorDto
 import com.example.practica.data.remote.dto.ForgotPasswordRequest
 import com.example.practica.data.remote.dto.LoginRequest
 import com.example.practica.data.remote.dto.LoginResponse
@@ -76,10 +74,15 @@ class AuthRepository(
     suspend fun register(name: String, lastName: String, email: String, password: String): Result<String> {
         return try {
             Log.d("AuthRepository", "Intentando registro: $name $lastName")
-            val body = RegisterRequest(name, lastName, email, password)
+            // Argumentos nombrados para evitar errores
+            val body = RegisterRequest(
+                name = name, 
+                lastName = lastName, 
+                email = email, 
+                password = password
+            )
             val response = api.register(body)
             
-            // Log de depuración
             Log.d("AuthRepository", "Registro respuesta: message=${response.message}")
 
             Result.success(response.message)
@@ -113,7 +116,7 @@ class AuthRepository(
         }
     }
 
-    // ---------- CRUD USUARIOS (ADAPTADO A NUEVO FORMATO) ----------
+    // ---------- CRUD USUARIOS ----------
     suspend fun getUsers(): Result<List<UserDto>> {
         return try {
             val response = api.getUsers()
@@ -129,7 +132,15 @@ class AuthRepository(
 
     suspend fun createUser(name: String, lastName: String, email: String, password: String, role: String = "OPERADOR", departmentId: Int? = null): Result<String> {
         return try {
-            val body = RegisterRequest(name, lastName, email, password, role, departmentId)
+            // Corrección: Argumentos nombrados
+            val body = RegisterRequest(
+                name = name, 
+                lastName = lastName, 
+                email = email, 
+                password = password, 
+                role = role, 
+                departmentId = departmentId
+            )
             val response = api.createUser(body)
             if (response.success) {
                  Result.success("Usuario creado correctamente")
@@ -145,9 +156,6 @@ class AuthRepository(
         return try {
             val response = api.updateUser(user.id, user)
             if (response.success) {
-                // Si el backend no devuelve el user actualizado, usamos el que enviamos o null
-                // Tu código de backend devuelve { success: true, message: "User updated" }
-                // Así que retornamos el mismo 'user' que mandamos para actualizar la UI localmente
                 Result.success(user)
             } else {
                 Result.failure(Exception(response.message ?: "Error desconocido"))
@@ -165,54 +173,6 @@ class AuthRepository(
             } else {
                 Result.failure(Exception(response.message ?: "Error al eliminar"))
             }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    // ---------- GESTIÓN DE SENSORES ----------
-    suspend fun getSensors(departmentId: Int? = null): Result<List<AccessSensorDto>> {
-        return try {
-            val sensors = api.getSensores(departmentId)
-            Result.success(sensors)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    suspend fun createSensor(sensor: AccessSensorDto): Result<AccessSensorDto> {
-        return try {
-            val newSensor = api.createSensor(sensor)
-            Result.success(newSensor)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    suspend fun updateSensor(sensor: AccessSensorDto): Result<AccessSensorDto> {
-        return try {
-            if (sensor.id == null) return Result.failure(Exception("ID de sensor nulo"))
-            val updatedSensor = api.updateSensor(sensor.id, sensor)
-            Result.success(updatedSensor)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    // ---------- GESTIÓN DE EVENTOS ----------
-    suspend fun getEvents(userId: Int? = null, departmentId: Int? = null): Result<List<AccessEventDto>> {
-        return try {
-            val events = api.getEventos(userId, departmentId)
-            Result.success(events)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    suspend fun registerAccessEvent(event: AccessEventDto): Result<AccessEventDto> {
-        return try {
-            val newEvent = api.registrarEvento(event)
-            Result.success(newEvent)
         } catch (e: Exception) {
             Result.failure(e)
         }

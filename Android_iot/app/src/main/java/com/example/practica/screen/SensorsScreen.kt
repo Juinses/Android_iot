@@ -18,18 +18,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,71 +52,82 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.practica.screen.home.SensorViewModel
+import com.example.practica.ui.theme.ErrorRed
+import com.example.practica.ui.theme.InfoBlue
+import com.example.practica.ui.theme.WarningOrange
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SensorsScreen(nav: NavController, vm: SensorViewModel = viewModel()) {
     val state by vm.uiState
     val context = LocalContext.current
 
-    // Estados locales para Ampolleta y Linterna
-    var isBulbOn by remember { mutableStateOf(false) }
+    // Estado local para Linterna
     var isFlashlightOn by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Sensores IOT", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- SECCIÓN 1: DATOS DE LA API (Temperatura y Humedad) ---
-        if (state.isLoading && state.temperature == null) {
-            CircularProgressIndicator()
-            Text("Cargando sensores...", color = MaterialTheme.colorScheme.onBackground)
-        } else {
-            // Muestra error si existe, pero sigue mostrando datos antiguos si los hay
-            if (state.errorMessage != null) {
-                Text(
-                    text = state.errorMessage ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Monitor Ambiental") },
+                navigationIcon = {
+                    IconButton(onClick = { nav.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-            }
-            
-            SensorDataCard(
-                temperature = state.temperature,
-                humidity = state.humidity,
-                lastUpdate = state.lastUpdate
             )
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // --- SECCIÓN 2: CONTROL DE DISPOSITIVOS (Ampolleta y Linterna) ---
-        Text("Control de Dispositivos", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // AMPOLLETA (Simulada)
-            DeviceControlCard(
-                label = "Ampolleta",
-                isOn = isBulbOn,
-                icon = Icons.Default.Settings, // Usamos un ícono genérico
-                onToggle = { isBulbOn = !isBulbOn }
-            )
+            // --- SECCIÓN 1: DATOS DE LA API (Temperatura y Humedad) ---
+            if (state.isLoading && state.temperature == null) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                if (state.errorMessage != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = state.errorMessage ?: "Error desconocido",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+                
+                Text("Lecturas en Tiempo Real", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                SensorDataCard(
+                    temperature = state.temperature,
+                    humidity = state.humidity,
+                    lastUpdate = state.lastUpdate
+                )
+            }
 
-            // LINTERNA (Real)
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- SECCIÓN 2: UTILIDADES ---
+            Text("Utilidades del Dispositivo", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // LINTERNA (Real) - Única utilidad física del móvil relevante aquí
             DeviceControlCard(
-                label = "Linterna",
+                label = "Linterna Móvil",
                 isOn = isFlashlightOn,
-                icon = Icons.Default.Notifications, // Usamos ícono genérico
+                icon = Icons.Default.Notifications, // Ojo: Buscar icono Flash si es posible, sino Notifications sirve
                 onToggle = {
                     val success = toggleFlashlight(context, !isFlashlightOn)
                     if (success) {
@@ -120,28 +136,6 @@ fun SensorsScreen(nav: NavController, vm: SensorViewModel = viewModel()) {
                 }
             )
         }
-        
-        // MENSAJES DE ESTADO (Requisito Punto 11)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = if (isBulbOn) "Ampolleta encendida" else "Ampolleta apagada",
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isBulbOn) MaterialTheme.colorScheme.primary else Color.Gray
-        )
-        Text(
-            text = if (isFlashlightOn) "Linterna activada" else "Linterna desactivada",
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isFlashlightOn) MaterialTheme.colorScheme.primary else Color.Gray
-        )
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        Button(
-            onClick = { nav.popBackStack() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Volver")
-        }
     }
 }
 
@@ -149,65 +143,84 @@ fun SensorsScreen(nav: NavController, vm: SensorViewModel = viewModel()) {
 fun SensorDataCard(temperature: Float?, humidity: Float?, lastUpdate: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(24.dp)) {
             // TEMPERATURA
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Lógica: > 20 °C es "Alta", <= 20 °C es "Baja"
-                val isHighTemp = (temperature ?: 0f) > 20f
-                
-                val tempColor = if (isHighTemp) Color.Red else Color.Blue
-                // Icono dinámico: Warning (alerta/calor) si es alta, Info (frío/info) si es baja
+                val isHighTemp = (temperature ?: 0f) > 28f // Umbral ajustado
+                val tempColor = if (isHighTemp) WarningOrange else InfoBlue
                 val tempIcon = if (isHighTemp) Icons.Default.Warning else Icons.Default.Info
 
-                Icon(
-                    imageVector = tempIcon,
-                    contentDescription = null,
-                    tint = tempColor,
-                    modifier = Modifier.size(40.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(tempColor.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = tempIcon,
+                        contentDescription = null,
+                        tint = tempColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
                 Spacer(modifier = Modifier.width(16.dp))
+                
                 Column {
-                    Text("Temperatura", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Temperatura", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                     Text(
                         text = temperature?.let { "$it °C" } ?: "-- °C",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            androidx.compose.material3.Divider(color = Color(0xFFEEEEEE))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // HUMEDAD
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Favorite, // Ícono genérico simulando gota
-                    contentDescription = null,
-                    tint = Color.Cyan,
-                    modifier = Modifier.size(40.dp)
-                )
+                 Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.Cyan.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite, // Gota (simulada)
+                        contentDescription = null,
+                        tint = Color(0xFF00ACC1),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
                 Spacer(modifier = Modifier.width(16.dp))
+                
                 Column {
-                    Text("Humedad", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Humedad Relativa", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                     Text(
                         text = humidity?.let { "$it %" } ?: "-- %",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
 
             if (lastUpdate != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    text = "Actualizado: $lastUpdate",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    text = "Última actualización: $lastUpdate",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.LightGray,
+                    modifier = Modifier.align(Alignment.End)
                 )
             }
         }
@@ -221,36 +234,41 @@ fun DeviceControlCard(
     icon: ImageVector,
     onToggle: () -> Unit
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(if (isOn) Color(0xFFFFD700) else Color.LightGray) // Amarillo vs Gris
-                .clickable { onToggle() },
-            contentAlignment = Alignment.Center
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() },
+         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(40.dp)
-            )
+             Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(if (isOn) Color(0xFFFFD700) else Color.Gray),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Switch(checked = isOn, onCheckedChange = { onToggle() })
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(label, color = MaterialTheme.colorScheme.onBackground)
-        Text(
-            text = if (isOn) "ON" else "OFF",
-            fontWeight = FontWeight.Bold,
-            color = if (isOn) Color(0xFFDAA520) else Color.Gray
-        )
     }
 }
 
 fun toggleFlashlight(context: Context, turnOn: Boolean): Boolean {
     return try {
         val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val cameraId = cameraManager.cameraIdList[0] // Generalmente la cámara trasera es la 0
+        val cameraId = cameraManager.cameraIdList[0] 
         cameraManager.setTorchMode(cameraId, turnOn)
         true
     } catch (e: Exception) {

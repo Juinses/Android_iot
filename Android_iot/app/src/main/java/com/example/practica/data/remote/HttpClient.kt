@@ -29,7 +29,9 @@ object HttpClient {
         .client(okHttp)
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
+        
     val authApi: AuthApi = retrofit.create(AuthApi::class.java)
     val sensorApi: SensorApi = retrofit.create(SensorApi::class.java)
     val ledApi: LedApi = retrofit.create(LedApi::class.java)
+    val eventApi: EventApi = retrofit.create(EventApi::class.java)
 }

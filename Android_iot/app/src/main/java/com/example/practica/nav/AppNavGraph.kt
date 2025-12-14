@@ -20,9 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
@@ -35,26 +37,24 @@ import com.example.practica.screen.RegisterScreen
 import com.example.practica.screen.ResetPasswordScreen
 import com.example.practica.screen.SensorsScreen
 import com.example.practica.screen.UserManagementScreen
+import com.example.practica.screen.history.HistoryScreen
 import com.example.practica.screen.led.LedControlScreen
 import com.example.practica.screen.login.AuthState
 import com.example.practica.screen.login.AuthViewModel
+import com.example.practica.screen.user_management.RfidManagementScreen
 import kotlinx.coroutines.delay
 
 @Composable
 fun AppNavGraph(vm: AuthViewModel = viewModel()) {
     val nav = rememberNavController()
     val authState by vm.authState.collectAsState()
+    
     NavHost(navController = nav, startDestination = "splash") {
         composable("splash") {
-            // AQUÍ reaccionamos a los cambios de authState
             LaunchedEffect(authState) {
-                // Retraso artificial de 3 segundos para ver el Splash (requisito UX)
                 delay(3000)
-                
                 when (authState) {
-                    AuthState.Checking -> {
-                        // Sigue chequeando
-                    }
+                    AuthState.Checking -> {}
                     is AuthState.Authenticated -> {
                         nav.navigate(Route.Home.path) {
                             popUpTo("splash") { inclusive = true }
@@ -68,50 +68,44 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
                     }
                 }
             }
-            // Solo dibuja la animación
             SplashLottie()
         }
-        composable(Route.Login.path) {
-            LoginScreen(
-                nav = nav,
-                vm = vm
-            )
-        }
+        composable(Route.Login.path) { LoginScreen(nav = nav, vm = vm) }
         composable(Route.Home.path) {
             HomeScreen(
                 nav = nav,
                 onLogoutDone = {
                     vm.logout()
-                    nav.navigate(Route.Login.path) {
-                        popUpTo(Route.Home.path) { inclusive = true }
-                    }
+                    nav.navigate(Route.Login.path) { popUpTo(Route.Home.path) { inclusive = true } }
                 }
             )
         }
-        composable(Route.Register.path) {
-            RegisterScreen(nav, vm)
-        }
-        composable(Route.ForgotPassword.path) {
-            ForgotPasswordScreen(nav, vm)
-        }
-        composable(Route.ResetPassword.path) {
-            ResetPasswordScreen(nav, vm)
-        }
+        composable(Route.Register.path) { RegisterScreen(nav, vm) }
+        composable(Route.ForgotPassword.path) { ForgotPasswordScreen(nav, vm) }
+        composable(Route.ResetPassword.path) { ResetPasswordScreen(nav, vm) }
         composable(Route.UserManagement.path) {
-            // Obtenemos el ID del usuario actual si está autenticado
             val currentUserId = (authState as? AuthState.Authenticated)?.user?.id
             UserManagementScreen(nav, currentUserId = currentUserId)
         }
-        composable(Route.Sensors.path) {
-            SensorsScreen(nav)
-        }
-        composable(Route.Developer.path) {
-            DeveloperScreen(nav)
-        }
-        composable(Route.LedControl.path) {
-            LedControlScreen(
-                onBackClick = { nav.popBackStack() }
-            )
+        composable(Route.Sensors.path) { SensorsScreen(nav) }
+        composable(Route.Developer.path) { DeveloperScreen(nav) }
+        composable(Route.LedControl.path) { LedControlScreen(onBackClick = { nav.popBackStack() }) }
+        composable(Route.RfidManagement.path) { RfidManagementScreen(nav) }
+        
+        // Historial con parámetro opcional userId (si es -1 o no se pasa, asumimos "todos" para admin o logueado)
+        // Usaremos: history/{userId}
+        composable(
+            route = "${Route.History.path}?userId={userId}",
+            arguments = listOf(navArgument("userId") { 
+                type = NavType.IntType 
+                defaultValue = -1 
+            })
+        ) { backStackEntry ->
+            val argId = backStackEntry.arguments?.getInt("userId") ?: -1
+            // Si es -1, pasamos null al ViewModel para que cargue TODO (si es admin) o lo suyo (si es user, validado en back)
+            // Pero para simplificar visualmente:
+            val targetId = if (argId == -1) null else argId
+            HistoryScreen(nav, userId = targetId)
         }
     }
 }
@@ -126,7 +120,7 @@ fun SplashLottie() {
         iterations = Int.MAX_VALUE
     )
     Box(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), // Fondo del tema
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
