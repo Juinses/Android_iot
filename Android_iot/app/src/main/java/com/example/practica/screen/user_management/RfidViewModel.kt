@@ -34,7 +34,8 @@ class RfidViewModel : ViewModel() {
             try {
                 // Cargamos sensores y usuarios en paralelo (o secuencial simple)
                 val sensors = sensorApi.getSensors()
-                val users = authApi.getUsers() // Asumimos que existe endpoint para listar todos
+                val usersResponse = authApi.getUsers() 
+                val users = usersResponse.users
 
                 _uiState.value = _uiState.value.copy(
                     sensors = sensors,

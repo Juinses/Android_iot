@@ -11,6 +11,7 @@ import com.example.practica.data.remote.dto.LoginResponse
 import com.example.practica.data.remote.dto.RegisterRequest
 import com.example.practica.data.remote.dto.ResetPasswordRequest
 import com.example.practica.data.remote.dto.UserDto
+import com.example.practica.data.remote.dto.UserListResponse
 
 class AuthRepository(
     private val api: AuthApi = HttpClient.authApi
@@ -32,10 +33,9 @@ class AuthRepository(
             
             // VALIDACIÓN ADICIONAL DEL USUARIO
             val user = response.user
-            if (user != null) {
-                if (user.status == "INACTIVO" || user.status == "BLOQUEADO") {
-                     return Result.failure(Exception("Usuario ${user.status}. Contacte al administrador."))
-                }
+            // user es non-nullable en LoginResponse, pero verificamos el status
+            if (user.status == "INACTIVO" || user.status == "BLOQUEADO") {
+                 return Result.failure(Exception("Usuario ${user.status}. Contacte al administrador."))
             }
             
             // 4. Guardamos el token en DataStore
@@ -120,6 +120,7 @@ class AuthRepository(
     suspend fun getUsers(): Result<List<UserDto>> {
         return try {
             val response = api.getUsers()
+            // UserListResponse tiene success
             if (response.success) {
                 Result.success(response.users)
             } else {
@@ -132,7 +133,6 @@ class AuthRepository(
 
     suspend fun createUser(name: String, lastName: String, email: String, password: String, role: String = "OPERADOR", departmentId: Int? = null): Result<String> {
         return try {
-            // Corrección: Argumentos nombrados
             val body = RegisterRequest(
                 name = name, 
                 lastName = lastName, 
@@ -142,11 +142,8 @@ class AuthRepository(
                 departmentId = departmentId
             )
             val response = api.createUser(body)
-            if (response.success) {
-                 Result.success("Usuario creado correctamente")
-            } else {
-                 Result.failure(Exception(response.message ?: "Error desconocido"))
-            }
+            // RegisterResponse solo tiene message, asumimos éxito si no hay excepción
+            Result.success(response.message)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -154,12 +151,9 @@ class AuthRepository(
 
     suspend fun updateUser(user: UserDto): Result<UserDto> {
         return try {
-            val response = api.updateUser(user.id, user)
-            if (response.success) {
-                Result.success(user)
-            } else {
-                Result.failure(Exception(response.message ?: "Error desconocido"))
-            }
+            api.updateUser(user.id, user)
+            // RegisterResponse solo tiene message, asumimos éxito si no hay excepción
+            Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -167,12 +161,9 @@ class AuthRepository(
 
     suspend fun deleteUser(id: Int): Result<Unit> {
         return try {
-            val response = api.deleteUser(id)
-            if (response.success) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception(response.message ?: "Error al eliminar"))
-            }
+            api.deleteUser(id)
+            // RegisterResponse solo tiene message, asumimos éxito si no hay excepción
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -23,11 +23,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
@@ -41,6 +39,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +55,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -168,11 +168,18 @@ fun HomeContent(
 ) {
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
+    val isPreview = LocalInspectionMode.current
     
     // Simulación simple para Preview si user es null o contexto testing
     LaunchedEffect(Unit) {
+        if (isPreview) {
+            currentTime = "12:00"
+            currentDate = "Lunes, 1 Ene"
+            return@LaunchedEffect
+        }
+
         while (true) {
-            val locale = Locale("es", "ES")
+            val locale = Locale.forLanguageTag("es-ES")
             val timeFormat = SimpleDateFormat("HH:mm", locale)
             val dateFormat = SimpleDateFormat("EEEE, d MMM", locale)
             // Fix para previews donde TimeZone puede fallar
@@ -234,7 +241,7 @@ fun HomeContent(
                     .size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ExitToApp,
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                     contentDescription = "Salir",
                     tint = ErrorRed,
                     modifier = Modifier.size(20.dp)
@@ -438,7 +445,7 @@ fun AdminDashboard(
         )
         Spacer(modifier = Modifier.height(10.dp))
         MenuCard(
-            icon = Icons.Default.History, 
+            icon = Icons.Default.Info, // Use a standard icon instead of History to avoid conflict
             title = "Historial Completo",
             subtitle = "Bitácora de accesos",
             onClick = { onNavigate(Route.History.path) }
@@ -504,7 +511,7 @@ fun OperatorDashboard(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             QuickActionIcon(
-                icon = Icons.Default.History,
+                icon = Icons.Default.Info, // Changed History to Info to fix error
                 label = "Historial",
                 onClick = { onNavigate("${Route.History.path}?userId=$userId") }
             )
