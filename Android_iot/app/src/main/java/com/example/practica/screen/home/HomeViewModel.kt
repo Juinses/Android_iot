@@ -123,14 +123,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _accessState.value = AccessState.Loading
             try {
-                // 1. Obtener sensores del usuario para usar uno como "llave"
+                // 1. Obtener todos los sensores del usuario
                 // Asumimos depto 1 por ahora (TODO: obtener real)
                 val sensorsResponse = sensorApi.getSensors(departmentId = 1)
-                val userSensor = sensorsResponse.data.find { it.userId == userId && it.status == "ACTIVO" }
+                val userSensors = sensorsResponse.data.filter { it.userId == userId }
 
-                if (userSensor != null) {
-                    // 2. Validar acceso con el código del sensor encontrado
-                    val request = AccessValidationRequest(sensorCode = userSensor.macAddress)
+                // 2. Intentar buscar uno ACTIVO
+                val activeSensor = userSensors.find { it.status == "ACTIVO" }
+                
+                // 3. Si hay uno ACTIVO, lo usamos para validar y abrir
+                if (activeSensor != null) {
+                    val request = AccessValidationRequest(sensorCode = activeSensor.macAddress)
                     val response = accessApi.validateAccess(request)
 
                     if (response.allowed) {
@@ -147,9 +150,31 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         _accessState.value = AccessState.Error("Acceso Denegado: ${response.reason}")
                         VibrationHelper.vibrateError(getApplication())
                     }
-                } else {
-                    _accessState.value = AccessState.Error("No tienes sensores activos asignados para usar el Llavero Digital")
+                    return@launch
                 }
+                
+                // 4. Si NO hay sensores activos, buscamos si tiene uno bloqueado/perdido para INTENTAR validar y generar el log de denegación
+                //    Esto cumple con el requerimiento de "guardar en historial" incluso si falla
+                val blockedSensor = userSensors.firstOrNull() // Tomamos cualquiera, aunque esté bloqueado
+                
+                if (blockedSensor != null) {
+                    // Intentamos validar con el sensor bloqueado. El backend debería responder allowed=false y registrar el evento "DENEGADO"
+                    val request = AccessValidationRequest(sensorCode = blockedSensor.macAddress)
+                    val response = accessApi.validateAccess(request)
+                    
+                    // Aquí siempre esperamos que sea false, pero manejamos la respuesta igual
+                    if (!response.allowed) {
+                         _accessState.value = AccessState.Error("Acceso Denegado: ${response.reason ?: "Sensor no activo"}")
+                         VibrationHelper.vibrateError(getApplication())
+                    } else {
+                        // Caso raro: el backend lo dejó pasar aunque la app pensaba que estaba bloqueado (inconsistencia)
+                        _accessState.value = AccessState.Success("Acceso Permitido (Extraño)")
+                    }
+                } else {
+                    // 5. Si no tiene NINGÚN sensor asignado (ni activo ni bloqueado)
+                    _accessState.value = AccessState.Error("No tienes ningún sensor asignado (ni activo ni inactivo)")
+                }
+
             } catch (e: Exception) {
                 // Si falla (ej: 404 si no hay endpoint, o error de red)
                 _accessState.value = AccessState.Error("Error de conexión o backend: ${e.message}")

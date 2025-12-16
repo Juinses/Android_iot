@@ -66,7 +66,9 @@ import com.example.practica.ui.theme.SuccessGreen
 @Composable
 fun RfidManagementScreen(
     nav: NavController,
-    vm: RfidViewModel = viewModel()
+    vm: RfidViewModel = viewModel(),
+    isReadOnly: Boolean = false,
+    filterUserId: Int? = null
 ) {
     val state by vm.uiState
     val context = LocalContext.current
@@ -85,14 +87,22 @@ fun RfidManagementScreen(
         }
     }
 
+    // Filtrado local para vista de Operador
+    val displayedSensors = if (filterUserId != null) {
+        state.sensors.filter { it.userId == filterUserId }
+    } else {
+        state.sensors
+    }
+
     RfidManagementContent(
-        state = state,
+        state = state.copy(sensors = displayedSensors),
+        isReadOnly = isReadOnly,
         onBack = { nav.popBackStack() },
-        onCreateSensor = { code, type, userId -> 
+        onCreateSensor = { code, type, userId, status -> 
             val userDept = state.users.find { it.id == userId }?.departmentId
-            vm.createSensor(code, type, userId, userDept) 
+            vm.createSensor(code, type, userId, userDept, status) 
         },
-        onToggleStatus = { vm.toggleSensorStatus(it) }
+        onStatusChange = { sensor, newStatus -> vm.updateSensorStatus(sensor, newStatus) }
     )
 }
 
@@ -100,16 +110,17 @@ fun RfidManagementScreen(
 @Composable
 fun RfidManagementContent(
     state: RfidUiState,
+    isReadOnly: Boolean,
     onBack: () -> Unit,
-    onCreateSensor: (String, String, Int) -> Unit,
-    onToggleStatus: (AccessSensorDto) -> Unit
+    onCreateSensor: (String, String, Int, String) -> Unit,
+    onStatusChange: (AccessSensorDto, String) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gestión Tags RFID") },
+                title = { Text(if (isReadOnly) "Mis Sensores" else "Gestión Tags RFID") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -123,11 +134,13 @@ fun RfidManagementContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Nuevo Sensor", tint = MaterialTheme.colorScheme.onPrimary)
+            if (!isReadOnly) {
+                FloatingActionButton(
+                    onClick = { showDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Nuevo Sensor", tint = MaterialTheme.colorScheme.onPrimary)
+                }
             }
         }
     ) { padding ->
@@ -149,7 +162,8 @@ fun RfidManagementContent(
                         SensorItem(
                             sensor = sensor,
                             ownerName = ownerName,
-                            onToggleStatus = { onToggleStatus(sensor) }
+                            isReadOnly = isReadOnly,
+                            onStatusChange = { newStatus -> onStatusChange(sensor, newStatus) }
                         )
                     }
                     if (state.sensors.isEmpty()) {
@@ -171,21 +185,24 @@ fun RfidManagementContent(
         AddSensorDialog(
             users = state.users,
             onDismiss = { showDialog = false },
-            onConfirm = { code, type, userId ->
-                onCreateSensor(code, type, userId)
+            onConfirm = { code, type, userId, status ->
+                onCreateSensor(code, type, userId, status)
                 showDialog = false
             }
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SensorItem(
     sensor: AccessSensorDto,
     ownerName: String,
-    onToggleStatus: () -> Unit
+    isReadOnly: Boolean,
+    onStatusChange: (String) -> Unit
 ) {
     val isActive = sensor.status == "ACTIVO"
+    var expanded by remember { mutableStateOf(false) }
     
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -234,30 +251,67 @@ fun SensorItem(
                 Text(
                     text = sensor.status,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isActive) SuccessGreen else ErrorRed,
+                    color = when(sensor.status) {
+                        "ACTIVO" -> SuccessGreen
+                        "BLOQUEADO" -> ErrorRed
+                        "PERDIDO" -> Color.Gray
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
                     fontWeight = FontWeight.Bold
                 )
             }
             
-            Switch(
-                checked = isActive,
-                onCheckedChange = { onToggleStatus() }
-            )
+            if (!isReadOnly) {
+                Box {
+                    TextButton(onClick = { expanded = true }) {
+                        Text("Cambiar Estado")
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Activo") },
+                            onClick = { onStatusChange("ACTIVO"); expanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Inactivo") },
+                            onClick = { onStatusChange("INACTIVO"); expanded = false }
+                        )
+                         DropdownMenuItem(
+                            text = { Text("Bloqueado") },
+                            onClick = { onStatusChange("BLOQUEADO"); expanded = false }
+                        )
+                         DropdownMenuItem(
+                            text = { Text("Perdido") },
+                            onClick = { onStatusChange("PERDIDO"); expanded = false }
+                        )
+                    }
+                }
+            }
         }
     }
 }
+
+@Composable // Added wrapper for DropdownMenu to avoid unresolved reference in some compose versions/contexts without full imports
+fun DropdownMenu(expanded: Boolean, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+    androidx.compose.material3.DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest, content = { content() })
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSensorDialog(
     users: List<UserDto>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Int) -> Unit
+    onConfirm: (String, String, Int, String) -> Unit
 ) {
     var code by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("Llavero") }
+    var selectedStatus by remember { mutableStateOf("ACTIVO") }
     var selectedUser by remember { mutableStateOf<UserDto?>(null) }
-    var expanded by remember { mutableStateOf(false) }
+    var expandedUser by remember { mutableStateOf(false) }
+    var expandedStatus by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -272,6 +326,7 @@ fun AddSensorDialog(
                     placeholder = { Text("Ej: A4:F3:11:00") }
                 )
                 
+                // Tipo Sensor
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
                         selected = selectedType == "Llavero",
@@ -286,27 +341,57 @@ fun AddSensorDialog(
                     Text("Tarjeta")
                 }
                 
+                // Estado Inicial
+                 ExposedDropdownMenuBox(
+                    expanded = expandedStatus,
+                    onExpandedChange = { expandedStatus = !expandedStatus }
+                ) {
+                    OutlinedTextField(
+                        value = selectedStatus,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Estado Inicial") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedStatus) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedStatus,
+                        onDismissRequest = { expandedStatus = false }
+                    ) {
+                        listOf("ACTIVO", "INACTIVO", "BLOQUEADO", "PERDIDO").forEach { status ->
+                            DropdownMenuItem(
+                                text = { Text(status) },
+                                onClick = {
+                                    selectedStatus = status
+                                    expandedStatus = false
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // Usuario Dueño
                 ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
+                    expanded = expandedUser,
+                    onExpandedChange = { expandedUser = !expandedUser }
                 ) {
                     OutlinedTextField(
                         value = selectedUser?.name ?: "Seleccionar Dueño",
                         onValueChange = {},
                         readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUser) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        expanded = expandedUser,
+                        onDismissRequest = { expandedUser = false }
                     ) {
                         users.forEach { user ->
                             DropdownMenuItem(
                                 text = { Text("${user.name} ${user.lastName ?: ""}") },
                                 onClick = {
                                     selectedUser = user
-                                    expanded = false
+                                    expandedUser = false
                                 }
                             )
                         }
@@ -318,7 +403,7 @@ fun AddSensorDialog(
             Button(
                 onClick = {
                     if (code.isNotBlank() && selectedUser != null) {
-                        onConfirm(code, selectedType, selectedUser!!.id)
+                        onConfirm(code, selectedType, selectedUser!!.id, selectedStatus)
                     }
                 },
                 enabled = code.isNotBlank() && selectedUser != null
@@ -349,9 +434,10 @@ fun RfidPreview() {
                     UserDto(2, "Maria", "Lopez", "maria@test.com")
                 )
             ),
+            isReadOnly = false,
             onBack = {},
-            onCreateSensor = { _, _, _ -> },
-            onToggleStatus = {}
+            onCreateSensor = { _, _, _, _ -> },
+            onStatusChange = { _, _ -> }
         )
     }
 }

@@ -55,7 +55,7 @@ class RfidViewModel : ViewModel() {
         }
     }
 
-    fun createSensor(code: String, type: String, userId: Int, departmentId: Int?) {
+    fun createSensor(code: String, type: String, userId: Int, departmentId: Int?, initialStatus: String) {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
@@ -63,7 +63,7 @@ class RfidViewModel : ViewModel() {
                     macAddress = code,
                     type = type,
                     userId = userId,
-                    status = "ACTIVO",
+                    status = initialStatus,
                     departmentId = departmentId
                 )
                 // createSensor ahora requiere departmentId en la URL
@@ -82,10 +82,9 @@ class RfidViewModel : ViewModel() {
         }
     }
 
-    fun toggleSensorStatus(sensor: AccessSensorDto) {
+    fun updateSensorStatus(sensor: AccessSensorDto, newStatus: String) {
         viewModelScope.launch {
             try {
-                val newStatus = if (sensor.status == "ACTIVO") "BLOQUEADO" else "ACTIVO"
                 val updated = sensor.copy(status = newStatus)
                 
                 // Asumiendo que el ID no es nulo para updates
@@ -97,7 +96,10 @@ class RfidViewModel : ViewModel() {
                     val index = currentList.indexOfFirst { it.id == id }
                     if (index != -1) {
                         currentList[index] = updated
-                        _uiState.value = _uiState.value.copy(sensors = currentList)
+                        _uiState.value = _uiState.value.copy(
+                            sensors = currentList,
+                            successMessage = "Estado actualizado a $newStatus"
+                        )
                     }
                 }
             } catch (e: Exception) {

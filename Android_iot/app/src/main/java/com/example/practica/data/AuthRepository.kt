@@ -10,6 +10,7 @@ import com.example.practica.data.remote.dto.LoginRequest
 import com.example.practica.data.remote.dto.LoginResponse
 import com.example.practica.data.remote.dto.RegisterRequest
 import com.example.practica.data.remote.dto.ResetPasswordRequest
+import com.example.practica.data.remote.dto.UpdateUserRequest
 import com.example.practica.data.remote.dto.UserDto
 import com.example.practica.data.remote.dto.UserListResponse
 
@@ -150,11 +151,37 @@ class AuthRepository(
 
     suspend fun updateUser(user: UserDto): Result<UserDto> {
         return try {
-            // Actualizado para usar PATCH con body Map
-            // Solo enviamos estado por ahora según backend. Evitamos null
-            val status = user.status ?: "ACTIVO"
-            val body = mapOf("estado" to status)
-            api.updateUserStatus(user.id, body)
+            // Estrategia: siempre intentar actualizar la info básica primero.
+            // Si funciona, genial. Si no (ej: email duplicado), capturamos error pero intentamos actualizar estado.
+            
+            var infoUpdated = false
+            try {
+                val updateBody = UpdateUserRequest(
+                    name = user.name,
+                    lastName = user.lastName,
+                    email = user.email
+                )
+                api.updateUserInfo(user.id, updateBody)
+                infoUpdated = true
+            } catch (e: Exception) {
+                Log.e("AuthRepo", "Fallo update info: ${e.message}")
+                // Si el usuario solo queria cambiar estado, esto fallaría si por ejemplo el email ya existe en otro user (aunque aqui enviamos el mismo email).
+                // Pero si falla, no deberíamos detener el cambio de estado.
+            }
+            
+            // Intentar actualizar estado
+            try {
+                val status = user.status ?: "ACTIVO"
+                val statusBody = mapOf("estado" to status)
+                api.updateUserStatus(user.id, statusBody)
+            } catch (e: Exception) {
+                Log.e("AuthRepo", "Fallo update estado: ${e.message}")
+                // Si ambos fallaron, lanzamos excepcion
+                if (!infoUpdated) throw e
+            }
+
+            // Si llegamos aqui, al menos una cosa se actualizó (o se intentó)
+            // Devolvemos el usuario tal cual lo pidió la UI para actualizar la lista localmente
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -163,7 +190,10 @@ class AuthRepository(
 
     suspend fun deleteUser(id: Int): Result<Unit> {
         return try {
-            api.deleteUser(id)
+            // El backend devuelve { message: ..., user_id: ... }
+            // AuthApi ahora devuelve ResponseBody para evitar parsing error
+            val responseBody = api.deleteUser(id)
+            // Si no lanzó excepción, es un 200 OK
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

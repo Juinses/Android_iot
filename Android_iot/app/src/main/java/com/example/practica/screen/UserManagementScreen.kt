@@ -32,7 +32,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,6 +65,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.practica.data.remote.dto.UserDto
 import com.example.practica.screen.user_management.UserManagementViewModel
+import com.example.practica.ui.theme.ErrorRed
+import com.example.practica.ui.theme.SuccessGreen
 
 enum class UserScreenState {
     MENU,
@@ -272,6 +278,9 @@ fun UserManagementListContent(vm: UserManagementViewModel, currentUserId: Int?) 
                             vm.clearMessages()
                             selectedUser = user
                             showDeleteDialog = true
+                        },
+                        onStatusChange = { newStatus ->
+                             vm.updateUser(user.copy(status = newStatus))
                         }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -289,7 +298,8 @@ fun UserManagementListContent(vm: UserManagementViewModel, currentUserId: Int?) 
         }
     }
     
-    // Diálogo de Edición
+    // Diálogo de Edición (No se usa actualmente para Estado, el estado se cambia directo en la lista)
+    // Se mantiene por si se quiere editar otros campos (Nombre, Email, etc.)
     if (showEditDialog && selectedUser != null) {
         UserFormDialog(
             user = selectedUser,
@@ -515,8 +525,11 @@ fun UserItem(
     user: UserDto,
     isCurrentUser: Boolean,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onStatusChange: (String) -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -543,7 +556,45 @@ fun UserItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(text = user.email, fontSize = 14.sp, color = Color.Gray)
+                Text(
+                    text = user.status ?: "ACTIVO", 
+                    fontSize = 12.sp, 
+                    fontWeight = FontWeight.Bold,
+                    color = when(user.status) {
+                        "ACTIVO" -> SuccessGreen
+                        "BLOQUEADO" -> ErrorRed
+                        "INACTIVO" -> Color.Gray
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                )
             }
+
+            // Botón de Estado (solo si no es el mismo usuario)
+            if (!isCurrentUser) {
+                Box {
+                    TextButton(onClick = { expanded = true }) {
+                        Text("Estado")
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Activo") },
+                            onClick = { onStatusChange("ACTIVO"); expanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Inactivo") },
+                            onClick = { onStatusChange("INACTIVO"); expanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Bloqueado") },
+                            onClick = { onStatusChange("BLOQUEADO"); expanded = false }
+                        )
+                    }
+                }
+            }
+            
             IconButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, contentDescription = "Modificar", tint = MaterialTheme.colorScheme.primary)
             }
@@ -553,9 +604,6 @@ fun UserItem(
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
                 }
-            } else {
-                // Espaciador para mantener alineación visual si se quisiera, o simplemente nada
-                Spacer(modifier = Modifier.width(48.dp)) 
             }
         }
     }

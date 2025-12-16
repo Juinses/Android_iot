@@ -144,10 +144,12 @@ fun HistoryScreenContent(
 
 @Composable
 fun HistoryItem(event: AccessEventDto) {
-    val isAllowed = event.result == "PERMITIDO" || event.eventType.contains("VALIDO")
+    // CORRECCIÓN: "ACCESO DENEGADO" o "DENEGADO" en el resultado deben mostrarse como no permitidos.
+    // Lógica anterior podía ser laxa. Ahora:
+    val isAllowed = event.result == "PERMITIDO" || 
+                    (event.eventType.contains("VALIDO") && event.result != "DENEGADO")
     
     val statusColor = if (isAllowed) SuccessGreen else ErrorRed
-    val bgColor = if (isAllowed) SuccessGreen.copy(alpha = 0.05f) else ErrorRed.copy(alpha = 0.05f)
     val icon = if (isAllowed) Icons.Default.Check else Icons.Default.Close
 
     Card(
@@ -178,11 +180,14 @@ fun HistoryItem(event: AccessEventDto) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                // Título: Tipo de Evento o Resultado directo si es denegado
+                val title = if (!isAllowed) "Acceso Denegado" else event.eventType.replace("_", " ")
+                
                 Text(
-                    text = event.eventType.replace("_", " "),
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (isAllowed) MaterialTheme.colorScheme.onSurface else ErrorRed
                 )
                 
                 if (!event.userName.isNullOrEmpty()) {
@@ -190,6 +195,15 @@ fun HistoryItem(event: AccessEventDto) {
                         text = event.userName,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // Mostrar detalle si existe (ej: "Sensor Bloqueado")
+                if (!event.detail.isNullOrEmpty() && event.detail != "null") {
+                     Text(
+                        text = event.detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ErrorRed
                     )
                 }
 
@@ -223,9 +237,9 @@ fun HistoryPreview() {
         HistoryScreenContent(
             state = HistoryUiState(
                 events = listOf(
-                    AccessEventDto(1, "12:30", 1, "Juan Perez", "ACCESO VALIDO", "RFID", "PERMITIDO"),
-                    AccessEventDto(2, "12:35", 2, "Maria Lopez", "ACCESO DENEGADO", "RFID", "DENEGADO"),
-                    AccessEventDto(3, "12:40", 1, "Admin", "APERTURA MANUAL", "APP", "PERMITIDO")
+                    AccessEventDto(1, "12:30", 1, "Juan Perez", "ACCESO VALIDO", "RFID", "PERMITIDO", null),
+                    AccessEventDto(2, "12:35", 2, "Maria Lopez", "ACCESO DENEGADO", "RFID", "DENEGADO", "Sensor Bloqueado"),
+                    AccessEventDto(3, "12:40", 1, "Admin", "APERTURA MANUAL", "APP", "PERMITIDO", null)
                 )
             ),
             userId = null,

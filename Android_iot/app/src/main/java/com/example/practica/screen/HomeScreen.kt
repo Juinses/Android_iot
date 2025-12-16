@@ -338,7 +338,7 @@ fun LastEventCard(event: AccessEventDto) {
                     Icon(
                         imageVector = icon, 
                         contentDescription = null, 
-                        tint = color,
+                        tint = color, 
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -419,7 +419,7 @@ fun AdminDashboard(
                 modifier = Modifier.weight(1f).height(56.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("SUBIR", fontWeight = FontWeight.Bold)
+                Text("ABRIR", fontWeight = FontWeight.Bold)
             }
             
             Button(
@@ -429,7 +429,7 @@ fun AdminDashboard(
                 modifier = Modifier.weight(1f).height(56.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("BAJAR", fontWeight = FontWeight.Bold)
+                Text("CERRAR", fontWeight = FontWeight.Bold)
             }
         }
 
@@ -530,7 +530,13 @@ fun OperatorDashboard(
             QuickActionIcon(
                 icon = Icons.Default.Info, // Changed History to Info to fix error
                 label = "Historial",
-                onClick = { onNavigate("${Route.History.path}?userId=$userId") }
+                onClick = { onNavigate(Route.History.path) } // Acceso a historial del departamento (general)
+            )
+
+            QuickActionIcon(
+                icon = Icons.Default.Settings,
+                label = "Mis Tags",
+                onClick = { onNavigate("${Route.RfidManagement.path}?readOnly=true&userId=$userId") }
             )
             
              QuickActionIcon(

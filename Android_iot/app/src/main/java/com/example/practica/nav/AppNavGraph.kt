@@ -92,7 +92,22 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
         composable(Route.Sensors.path) { SensorsScreen(nav) }
         composable(Route.Developer.path) { DeveloperScreen(nav) }
         composable(Route.LedControl.path) { LedControlScreen(onBackClick = { nav.popBackStack() }) }
-        composable(Route.RfidManagement.path) { RfidManagementScreen(nav) }
+        
+        // RfidManagement con argumentos opcionales
+        composable(
+            route = "${Route.RfidManagement.path}?readOnly={readOnly}&userId={userId}",
+            arguments = listOf(
+                navArgument("readOnly") { type = NavType.BoolType; defaultValue = false },
+                navArgument("userId") { type = NavType.IntType; defaultValue = -1 }
+            )
+        ) { backStackEntry ->
+            val readOnly = backStackEntry.arguments?.getBoolean("readOnly") ?: false
+            val userIdArg = backStackEntry.arguments?.getInt("userId") ?: -1
+            val filterUserId = if (userIdArg != -1) userIdArg else null
+            
+            RfidManagementScreen(nav, isReadOnly = readOnly, filterUserId = filterUserId)
+        }
+        
         composable(Route.DepartmentManagement.path) { DepartmentManagementScreen(nav) }
         
         // Historial con parámetro opcional userId (si es -1 o no se pasa, asumimos "todos" para admin o logueado)

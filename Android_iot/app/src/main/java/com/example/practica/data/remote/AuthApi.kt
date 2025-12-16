@@ -8,8 +8,10 @@ import com.example.practica.data.remote.dto.RegisterRequest
 import com.example.practica.data.remote.dto.RegisterResponse
 import com.example.practica.data.remote.dto.ResetPasswordRequest
 import com.example.practica.data.remote.dto.ResetPasswordResponse
+import com.example.practica.data.remote.dto.UpdateUserRequest
 import com.example.practica.data.remote.dto.UserDto
 import com.example.practica.data.remote.dto.UserListResponse
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -50,11 +52,16 @@ interface AuthApi {
         @Body request: RegisterRequest
     ): RegisterResponse
 
-    // Backend: PATCH /api/usuarios/:id/estado
-    @PATCH("api/usuarios/{id}/estado")
-    suspend fun updateUserStatus(@Path("id") id: Int, @Body body: Map<String, String>): UserDto 
+    // Backend: PATCH /api/usuarios/:id (Update info)
+    @PATCH("api/usuarios/{id}")
+    suspend fun updateUserInfo(@Path("id") id: Int, @Body body: UpdateUserRequest): Map<String, Any>
 
-    // DELETE no estaba en el archivo usuarios.js, lo dejamos o comentamos si no existe
+    // Backend: PATCH /api/usuarios/:id/estado (Update status only)
+    @PATCH("api/usuarios/{id}/estado")
+    suspend fun updateUserStatus(@Path("id") id: Int, @Body body: Map<String, String>): Map<String, Any>
+
+    // DELETE
+    // Usamos ResponseBody para ignorar el contenido de la respuesta y evitar errores de parseo
     @DELETE("api/usuarios/{id}")
-    suspend fun deleteUser(@Path("id") id: Int): RegisterResponse
+    suspend fun deleteUser(@Path("id") id: Int): ResponseBody
 }
