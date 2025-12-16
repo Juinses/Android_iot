@@ -55,19 +55,21 @@ import com.example.practica.ui.theme.SuccessGreen
 fun HistoryScreen(
     nav: NavController,
     userId: Int? = null,
+    departmentId: Int, // Agregado: Requerido por el backend
     vm: HistoryViewModel = viewModel()
 ) {
     val state by vm.uiState
 
     LaunchedEffect(Unit) {
-        vm.loadEvents(userId)
+        // Ahora pasamos el departmentId obligatorio
+        vm.loadEvents(departmentId, userId)
     }
 
     HistoryScreenContent(
         state = state,
         userId = userId,
         onBack = { nav.popBackStack() },
-        onRefresh = { vm.loadEvents(userId) }
+        onRefresh = { vm.loadEvents(departmentId, userId) }
     )
 }
 

@@ -7,12 +7,13 @@ data class RegisterRequest(
     @Json(name = "last_name") val lastName: String,
     val email: String,
     val password: String,
-    @Json(name = "rol") val role: String? = "OPERADOR",
-    @Json(name = "id_departamento") val departmentId: Int? = null
+    @Json(name = "departamento_id") val departmentId: Int, // Obligatorio según backend
+    @Json(name = "rol") val role: String? = null // Opcional (ADMIN, OPERADOR)
 )
 
 data class RegisterResponse(
-    val message: String
+    val message: String,
+    val user: UserDto? = null
 )
 
 data class ForgotPasswordRequest(

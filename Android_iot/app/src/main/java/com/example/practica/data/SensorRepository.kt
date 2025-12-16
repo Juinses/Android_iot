@@ -7,6 +7,8 @@ import com.example.practica.data.remote.dto.SensorDataDto
 
 class SensorRepository {
     private val api = HttpClient.sensorApi
+    // Si necesitas usar BarrierApi directamente aquí, puedes descomentar:
+    private val barrierApi = HttpClient.barrierApi
 
     suspend fun getSensorData(): Result<SensorDataDto> {
         return try {
@@ -21,8 +23,10 @@ class SensorRepository {
 
     suspend fun getSensors(departmentId: Int? = null): Result<List<AccessSensorDto>> {
         return try {
-            val sensors = api.getSensors(departmentId)
-            Result.success(sensors)
+            // Se requiere departmentId. Usamos 1 por defecto si es nulo.
+            val targetDeptId = departmentId ?: 1
+            val response = api.getSensors(targetDeptId)
+            Result.success(response.data) // Desempaquetamos SensorListResponse
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -30,7 +34,9 @@ class SensorRepository {
 
     suspend fun createSensor(sensor: AccessSensorDto): Result<AccessSensorDto> {
         return try {
-            val createdSensor = api.createSensor(sensor)
+            // Se requiere departmentId en la URL. Usamos sensor.departmentId o 1.
+            val targetDeptId = sensor.departmentId ?: 1
+            val createdSensor = api.createSensor(targetDeptId, sensor)
             Result.success(createdSensor)
         } catch (e: Exception) {
             Result.failure(e)
@@ -46,10 +52,20 @@ class SensorRepository {
         }
     }
 
-    suspend fun getAccessEvents(userId: Int? = null): Result<List<AccessEventDto>> {
+    suspend fun getAccessEvents(userId: Int? = null, departmentId: Int? = null): Result<List<AccessEventDto>> {
         return try {
-            val events = api.getAccessEvents(userId)
-            Result.success(events)
+            // Usamos departmentId o 1 por defecto.
+            val targetDeptId = departmentId ?: 1
+            val response = api.getAccessEvents(targetDeptId)
+            val events = response.data
+            
+            // Filtramos por userId si se proporciona (el backend filtra por departamento)
+            val filteredEvents = if (userId != null) {
+                events.filter { it.userId == userId }
+            } else {
+                events
+            }
+            Result.success(filteredEvents)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -64,10 +80,16 @@ class SensorRepository {
         }
     }
 
+    // Estos métodos usaban SensorApi.openBarrier que ya no existe o cambió.
+    // Usamos BarrierApi en su lugar.
     suspend fun openBarrier(userId: Int): Result<Unit> {
         return try {
-            api.openBarrier(userId)
-            Result.success(Unit)
+            val response = barrierApi.openBarrier()
+            if (response.ok) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Fallo al abrir barrera"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -75,8 +97,12 @@ class SensorRepository {
 
     suspend fun closeBarrier(userId: Int): Result<Unit> {
         return try {
-            api.closeBarrier(userId)
-            Result.success(Unit)
+            val response = barrierApi.closeBarrier()
+            if (response.ok) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Fallo al cerrar barrera"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

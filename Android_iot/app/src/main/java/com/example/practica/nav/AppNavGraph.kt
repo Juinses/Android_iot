@@ -41,6 +41,7 @@ import com.example.practica.screen.history.HistoryScreen
 import com.example.practica.screen.led.LedControlScreen
 import com.example.practica.screen.login.AuthState
 import com.example.practica.screen.login.AuthViewModel
+import com.example.practica.screen.user_management.DepartmentManagementScreen
 import com.example.practica.screen.user_management.RfidManagementScreen
 import kotlinx.coroutines.delay
 
@@ -74,6 +75,7 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
         composable(Route.Home.path) {
             HomeScreen(
                 nav = nav,
+                authVm = vm,
                 onLogoutDone = {
                     vm.logout()
                     nav.navigate(Route.Login.path) { popUpTo(Route.Home.path) { inclusive = true } }
@@ -91,6 +93,7 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
         composable(Route.Developer.path) { DeveloperScreen(nav) }
         composable(Route.LedControl.path) { LedControlScreen(onBackClick = { nav.popBackStack() }) }
         composable(Route.RfidManagement.path) { RfidManagementScreen(nav) }
+        composable(Route.DepartmentManagement.path) { DepartmentManagementScreen(nav) }
         
         // Historial con parámetro opcional userId (si es -1 o no se pasa, asumimos "todos" para admin o logueado)
         // Usaremos: history/{userId}
@@ -102,10 +105,13 @@ fun AppNavGraph(vm: AuthViewModel = viewModel()) {
             })
         ) { backStackEntry ->
             val argId = backStackEntry.arguments?.getInt("userId") ?: -1
-            // Si es -1, pasamos null al ViewModel para que cargue TODO (si es admin) o lo suyo (si es user, validado en back)
-            // Pero para simplificar visualmente:
             val targetId = if (argId == -1) null else argId
-            HistoryScreen(nav, userId = targetId)
+            
+            // Obtenemos el departmentId del usuario logueado para pasarlo a HistoryScreen
+            val currentUser = (authState as? AuthState.Authenticated)?.user
+            val myDeptId = currentUser?.departmentId ?: 1 // Default a 1 si no hay usuario (caso raro)
+
+            HistoryScreen(nav, userId = targetId, departmentId = myDeptId)
         }
     }
 }

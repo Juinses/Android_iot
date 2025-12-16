@@ -32,10 +32,14 @@ class RfidViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
-                // Cargamos sensores y usuarios en paralelo (o secuencial simple)
-                val sensors = sensorApi.getSensors()
-                val usersResponse = authApi.getUsers() 
-                val users = usersResponse.users
+                // Usamos departamento 1 por defecto (o deberíamos sacarlo del usuario logueado)
+                // TODO: Obtener el departmentId real del usuario logueado
+                val departmentId = 1 
+                val sensorsResponse = sensorApi.getSensors(departmentId)
+                val sensors = sensorsResponse.data
+                
+                val usersResponse = authApi.getUsers(departmentId) 
+                val users = usersResponse.data
 
                 _uiState.value = _uiState.value.copy(
                     sensors = sensors,
@@ -62,7 +66,9 @@ class RfidViewModel : ViewModel() {
                     status = "ACTIVO",
                     departmentId = departmentId
                 )
-                sensorApi.createSensor(newSensor)
+                // createSensor ahora requiere departmentId en la URL
+                val targetDeptId = departmentId ?: 1
+                sensorApi.createSensor(targetDeptId, newSensor)
                 
                 // Recargar lista
                 loadData()

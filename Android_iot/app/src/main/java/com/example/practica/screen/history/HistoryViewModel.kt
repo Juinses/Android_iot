@@ -19,26 +19,36 @@ class HistoryViewModel : ViewModel() {
     private val _uiState = mutableStateOf(HistoryUiState())
     val uiState: State<HistoryUiState> = _uiState
 
-    // Si userId es null, carga todo (para Admin). Si tiene valor, filtra (para Operador)
-    fun loadEvents(userId: Int? = null) {
+    // Ahora requiere departmentId obligatorio para saber qué lista pedir
+    fun loadEvents(departmentId: Int, userId: Int? = null) {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
-                // La API getAccessEvents ya soporta query parameter userId
-                val events = api.getAccessEvents(userId)
+                // Pedimos los eventos del departamento real del usuario
+                val response = api.getAccessEvents(departmentId)
+                val events = response.data
                 
-                // Ordenar por fecha descendente (lo más nuevo primero) si la API no lo hace
-                // Asumiendo formato ISO string ordenable o id autoincremental
+                // Ordenar por fecha descendente
                 val sortedEvents = events.sortedByDescending { it.id } 
                 
+                // Filtramos localmente si es necesario (para Operador que solo quiere ver los suyos)
+                // Aunque el requerimiento dice "visualizar el historial de accesos del departamento", 
+                // así que un operador podría ver los de todos en su depto.
+                // Si userId viene (filtro explícito), lo aplicamos.
+                val filteredEvents = if (userId != null) {
+                    sortedEvents.filter { it.userId == userId }
+                } else {
+                    sortedEvents
+                }
+                
                 _uiState.value = _uiState.value.copy(
-                    events = sortedEvents,
+                    events = filteredEvents,
                     isLoading = false
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Error al cargar historial: ${e.message}"
+                    error = "Error: ${e.message}"
                 )
             }
         }

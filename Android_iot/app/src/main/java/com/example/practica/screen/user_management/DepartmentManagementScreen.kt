@@ -15,29 +15,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -50,28 +43,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.practica.data.remote.dto.AccessSensorDto
-import com.example.practica.data.remote.dto.UserDto
-import com.example.practica.ui.theme.ErrorRed
+import com.example.practica.data.remote.dto.DepartmentDto
 import com.example.practica.ui.theme.PracticaTheme
-import com.example.practica.ui.theme.SuccessGreen
 
 @Composable
-fun RfidManagementScreen(
+fun DepartmentManagementScreen(
     nav: NavController,
-    vm: RfidViewModel = viewModel()
+    vm: DepartmentManagementViewModel = viewModel()
 ) {
     val state by vm.uiState
     val context = LocalContext.current
     
-    // Feedback
     LaunchedEffect(state.error) {
         state.error?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
@@ -85,31 +73,28 @@ fun RfidManagementScreen(
         }
     }
 
-    RfidManagementContent(
+    DepartmentManagementContent(
         state = state,
         onBack = { nav.popBackStack() },
-        onCreateSensor = { code, type, userId -> 
-            val userDept = state.users.find { it.id == userId }?.departmentId
-            vm.createSensor(code, type, userId, userDept) 
-        },
-        onToggleStatus = { vm.toggleSensorStatus(it) }
+        onCreateDepartment = { number, tower, other -> 
+            vm.createDepartment(number, tower, other) 
+        }
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RfidManagementContent(
-    state: RfidUiState,
+fun DepartmentManagementContent(
+    state: DepartmentUiState,
     onBack: () -> Unit,
-    onCreateSensor: (String, String, Int) -> Unit,
-    onToggleStatus: (AccessSensorDto) -> Unit
+    onCreateDepartment: (String, String, String?) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gestión Tags RFID") },
+                title = { Text("Gestión Departamentos") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -127,15 +112,15 @@ fun RfidManagementContent(
                 onClick = { showDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Nuevo Sensor", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.Add, contentDescription = "Nuevo Depto", tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     ) { padding ->
         Box(modifier = Modifier
             .padding(padding)
-            .background(MaterialTheme.colorScheme.background)
-            .fillMaxSize()) {
-            if (state.isLoading && state.sensors.isEmpty()) {
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)) {
+            if (state.isLoading && state.departments.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                 LazyColumn(
@@ -144,18 +129,13 @@ fun RfidManagementContent(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(state.sensors) { sensor ->
-                        val ownerName = state.users.find { it.id == sensor.userId }?.name ?: "ID: ${sensor.userId}"
-                        SensorItem(
-                            sensor = sensor,
-                            ownerName = ownerName,
-                            onToggleStatus = { onToggleStatus(sensor) }
-                        )
+                    items(state.departments) { dept ->
+                        DepartmentItem(dept)
                     }
-                    if (state.sensors.isEmpty()) {
+                    if (state.departments.isEmpty()) {
                         item {
                             Text(
-                                "No hay sensores registrados.",
+                                "No hay departamentos registrados.",
                                 modifier = Modifier.align(Alignment.Center),
                                 color = MaterialTheme.colorScheme.outline
                             )
@@ -168,11 +148,10 @@ fun RfidManagementContent(
     }
 
     if (showDialog) {
-        AddSensorDialog(
-            users = state.users,
+        AddDepartmentDialog(
             onDismiss = { showDialog = false },
-            onConfirm = { code, type, userId ->
-                onCreateSensor(code, type, userId)
+            onConfirm = { num, tower, other ->
+                onCreateDepartment(num, tower, other)
                 showDialog = false
             }
         )
@@ -180,20 +159,13 @@ fun RfidManagementContent(
 }
 
 @Composable
-fun SensorItem(
-    sensor: AccessSensorDto,
-    ownerName: String,
-    onToggleStatus: () -> Unit
-) {
-    val isActive = sensor.status == "ACTIVO"
-    
+fun DepartmentItem(dept: DepartmentDto) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        modifier = Modifier.fillMaxWidth(),
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (isActive) Color.Transparent else ErrorRed.copy(alpha=0.3f))
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
@@ -205,15 +177,15 @@ fun SensorItem(
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        color = if (sensor.type == "Tarjeta") MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.tertiaryContainer,
-                        shape = CircleShape
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = androidx.compose.foundation.shape.CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (sensor.type == "Tarjeta") Icons.Default.Settings else Icons.Default.Lock,
+                    imageVector = Icons.Default.Home,
                     contentDescription = null,
-                    tint = if (sensor.type == "Tarjeta") MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onTertiaryContainer
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }
             
@@ -221,107 +193,76 @@ fun SensorItem(
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = sensor.macAddress,
+                    text = "Depto: ${dept.number}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "$ownerName (${sensor.type})",
+                    text = "Torre: ${dept.tower}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = sensor.status,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isActive) SuccessGreen else ErrorRed,
-                    fontWeight = FontWeight.Bold
-                )
+                if (!dept.otherData.isNullOrBlank()) {
+                    Text(
+                        text = dept.otherData,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             
-            Switch(
-                checked = isActive,
-                onCheckedChange = { onToggleStatus() }
+            Text(
+                text = "#${dept.id}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddSensorDialog(
-    users: List<UserDto>,
+fun AddDepartmentDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Int) -> Unit
+    onConfirm: (String, String, String?) -> Unit
 ) {
-    var code by remember { mutableStateOf("") }
-    var selectedType by remember { mutableStateOf("Llavero") }
-    var selectedUser by remember { mutableStateOf<UserDto?>(null) }
-    var expanded by remember { mutableStateOf(false) }
+    var number by remember { mutableStateOf("") }
+    var tower by remember { mutableStateOf("") }
+    var otherData by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Registrar Nuevo Sensor") },
+        title = { Text("Nuevo Departamento") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
-                    value = code,
-                    onValueChange = { code = it },
-                    label = { Text("Código MAC / UID") },
-                    singleLine = true,
-                    placeholder = { Text("Ej: A4:F3:11:00") }
+                    value = number,
+                    onValueChange = { number = it },
+                    label = { Text("Número (ej: 101)") },
+                    singleLine = true
                 )
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = selectedType == "Llavero",
-                        onClick = { selectedType = "Llavero" }
-                    )
-                    Text("Llavero")
-                    Spacer(modifier = Modifier.width(16.dp))
-                    RadioButton(
-                        selected = selectedType == "Tarjeta",
-                        onClick = { selectedType = "Tarjeta" }
-                    )
-                    Text("Tarjeta")
-                }
-                
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    OutlinedTextField(
-                        value = selectedUser?.name ?: "Seleccionar Dueño",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        users.forEach { user ->
-                            DropdownMenuItem(
-                                text = { Text("${user.name} ${user.lastName ?: ""}") },
-                                onClick = {
-                                    selectedUser = user
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
+                OutlinedTextField(
+                    value = tower,
+                    onValueChange = { tower = it },
+                    label = { Text("Torre (ej: A)") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = otherData,
+                    onValueChange = { otherData = it },
+                    label = { Text("Otros datos (opcional)") },
+                    singleLine = true
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (code.isNotBlank() && selectedUser != null) {
-                        onConfirm(code, selectedType, selectedUser!!.id)
+                    if (number.isNotBlank() && tower.isNotBlank()) {
+                        onConfirm(number, tower, otherData.ifBlank { null })
                     }
                 },
-                enabled = code.isNotBlank() && selectedUser != null
+                enabled = number.isNotBlank() && tower.isNotBlank()
             ) {
                 Text("Guardar")
             }
@@ -336,22 +277,17 @@ fun AddSensorDialog(
 
 @Preview(showBackground = true)
 @Composable
-fun RfidPreview() {
+fun DepartmentPreview() {
     PracticaTheme {
-        RfidManagementContent(
-            state = RfidUiState(
-                sensors = listOf(
-                    AccessSensorDto(1, "AA:BB:CC:11", "Tarjeta", 1, "ACTIVO"),
-                    AccessSensorDto(2, "11:22:33:44", "Llavero", 2, "BLOQUEADO")
-                ),
-                users = listOf(
-                    UserDto(1, "Juan", "Pérez", "juan@test.com"),
-                    UserDto(2, "Maria", "Lopez", "maria@test.com")
+        DepartmentManagementContent(
+            state = DepartmentUiState(
+                departments = listOf(
+                    DepartmentDto(1, "101", "A", "Piso 1"),
+                    DepartmentDto(2, "202", "B", null)
                 )
             ),
             onBack = {},
-            onCreateSensor = { _, _, _ -> },
-            onToggleStatus = {}
+            onCreateDepartment = { _, _, _ -> }
         )
     }
 }

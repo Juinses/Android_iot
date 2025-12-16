@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
@@ -437,6 +438,15 @@ fun AdminDashboard(
             onClick = { onNavigate(Route.RfidManagement.path) }
         )
         Spacer(modifier = Modifier.height(10.dp))
+        
+        MenuCard(
+            icon = Icons.Default.Home,
+            title = "Departamentos",
+            subtitle = "Torres y unidades",
+            onClick = { onNavigate(Route.DepartmentManagement.path) }
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        
         MenuCard(
             icon = Icons.Default.Person,
             title = "Residentes",

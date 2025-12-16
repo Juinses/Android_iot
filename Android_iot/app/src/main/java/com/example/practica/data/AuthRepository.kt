@@ -75,11 +75,13 @@ class AuthRepository(
         return try {
             Log.d("AuthRepository", "Intentando registro: $name $lastName")
             // Argumentos nombrados para evitar errores
+            // Asumimos departmentId = 1 para registro público si no se especifica en la UI
             val body = RegisterRequest(
                 name = name, 
                 lastName = lastName, 
                 email = email, 
-                password = password
+                password = password,
+                departmentId = 1 
             )
             val response = api.register(body)
             
@@ -117,15 +119,11 @@ class AuthRepository(
     }
 
     // ---------- CRUD USUARIOS ----------
-    suspend fun getUsers(): Result<List<UserDto>> {
+    suspend fun getUsers(departmentId: Int = 1): Result<List<UserDto>> {
         return try {
-            val response = api.getUsers()
-            // UserListResponse tiene success
-            if (response.success) {
-                Result.success(response.users)
-            } else {
-                Result.failure(Exception("Error al obtener usuarios: success=false"))
-            }
+            // Actualizado para usar la nueva firma de getUsers(departmentId)
+            val response = api.getUsers(departmentId)
+            Result.success(response.data)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -133,16 +131,17 @@ class AuthRepository(
 
     suspend fun createUser(name: String, lastName: String, email: String, password: String, role: String = "OPERADOR", departmentId: Int? = null): Result<String> {
         return try {
+            val targetDeptId = departmentId ?: 1
             val body = RegisterRequest(
                 name = name, 
                 lastName = lastName, 
                 email = email, 
                 password = password, 
                 role = role, 
-                departmentId = departmentId
+                departmentId = targetDeptId
             )
-            val response = api.createUser(body)
-            // RegisterResponse solo tiene message, asumimos éxito si no hay excepción
+            // Actualizado para usar la nueva firma de createUser(deptId, body)
+            val response = api.createUser(targetDeptId, body)
             Result.success(response.message)
         } catch (e: Exception) {
             Result.failure(e)
@@ -151,8 +150,11 @@ class AuthRepository(
 
     suspend fun updateUser(user: UserDto): Result<UserDto> {
         return try {
-            api.updateUser(user.id, user)
-            // RegisterResponse solo tiene message, asumimos éxito si no hay excepción
+            // Actualizado para usar PATCH con body Map
+            // Solo enviamos estado por ahora según backend. Evitamos null
+            val status = user.status ?: "ACTIVO"
+            val body = mapOf("estado" to status)
+            api.updateUserStatus(user.id, body)
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
@@ -162,7 +164,6 @@ class AuthRepository(
     suspend fun deleteUser(id: Int): Result<Unit> {
         return try {
             api.deleteUser(id)
-            // RegisterResponse solo tiene message, asumimos éxito si no hay excepción
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

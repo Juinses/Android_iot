@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import com.example.practica.data.remote.HttpClient
 import com.example.practica.nav.AppNavGraph
 import com.example.practica.ui.theme.PracticaTheme
 
@@ -12,6 +13,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen() // sin keepSplash ni delay manual
         super.onCreate(savedInstanceState)
+        
+        // Inicializar el HttpClient con el contexto de la aplicación
+        HttpClient.init(applicationContext)
+        
         setContent {
             PracticaTheme {
                 AppNavGraph()
@@ -19,5 +24,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-
