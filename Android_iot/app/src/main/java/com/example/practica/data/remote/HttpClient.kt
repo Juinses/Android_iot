@@ -9,7 +9,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
 object HttpClient {
-    private const val BASE_URL = "http://ec2-52-71-213-89.compute-1.amazonaws.com/"
+    private const val BASE_URL = "http://ec2-52-71-213-89.compute-1.amazonaws.com"
     
     private var retrofit: Retrofit? = null
 

@@ -37,6 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -257,23 +258,29 @@ fun HomeContent(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        if (isAdmin) {
-            AdminDashboard(
-                isLoading = isLoading,
-                isOnline = isOnline,
-                barrierStatus = barrierStatus,
-                onNavigate = onNavigate,
-                onOpen = { onOpenBarrier(false) }, 
-                onClose = onCloseBarrier
-            )
+        if (user != null) {
+            if (isAdmin) {
+                AdminDashboard(
+                    isLoading = isLoading,
+                    isOnline = isOnline,
+                    barrierStatus = barrierStatus,
+                    onNavigate = onNavigate,
+                    onOpen = { onOpenBarrier(false) }, 
+                    onClose = onCloseBarrier
+                )
+            } else {
+                OperatorDashboard(
+                    isLoading = isLoading,
+                    isOnline = isOnline,
+                    userId = user.id,
+                    onDigitalKey = { onOpenBarrier(true) }, 
+                    onNavigate = onNavigate
+                )
+            }
         } else {
-            OperatorDashboard(
-                isLoading = isLoading,
-                isOnline = isOnline,
-                userId = user?.id ?: -1,
-                onDigitalKey = { onOpenBarrier(true) }, 
-                onNavigate = onNavigate
-            )
+            Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
         
         Spacer(modifier = Modifier.height(32.dp))
